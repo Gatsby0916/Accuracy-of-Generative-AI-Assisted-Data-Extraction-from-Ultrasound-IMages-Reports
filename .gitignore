@@ -1,0 +1,144 @@
+# --- Python ---
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+# *.manifest
+# *.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# --- Virtual Environment ---
+# Exclude virtual environment directory typically named 'venv' or '.venv'
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*/venv/
+*/.venv/
+*/env/
+*/ENV/
+
+# --- Environment Variables ---
+# Exclude files containing environment variables and secrets
+.env*
+
+# --- IDE / Editor Configuration ---
+# VS Code
+.vscode/
+# PyCharm
+.idea/
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+# Vim
+*.sw[op]
+# Emacs
+*~
+#.#*
+#.##
+
+# --- Temporary Files ---
+# Excel temporary lock files, etc.
+~$*.*
+
+# --- OS Generated Files ---
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Project Specific Ignores ---
+
+# Ignore ALL content within the 'data' directory...
+data/*
+
+# ... BUT explicitly DO NOT ignore the 'templates' subdirectory within 'data'.
+# This allows data/templates/json_template.json to be tracked by Git.
+# If your template file IS sensitive, remove the line below and just ignore data/
+!data/templates/
+# If you want to ignore specific files inside templates, add them below:
+# data/templates/some_other_sensitive_template.json
+
+# Ignore the contents of the results directory initially
+results/*
+
+# BUT, make an exception for the overall_analysis directory itself,
+# allowing Git to look inside it.
+!results/overall_analysis/
+
+# THEN, ignore everything inside overall_analysis...
+results/overall_analysis/*
+
+# ...EXCEPT for the specific files we want to keep.
+!results/overall_analysis/accuracy_plot.png
+!results/overall_analysis/accuracy_summary.txt
+
+# --- Optional: Log files ---
+*.log
+logs/
+
