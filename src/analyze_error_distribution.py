@@ -8,7 +8,7 @@ from collections import Counter
 try:
     import config # Import project configuration
 except ImportError:
-    print("错误：无法导入 config.py。请确保此脚本与 config.py 在同一 src 目录下，或者 config.py 在 Python 路径中。")
+    print("error: config.py not found. Ensure it is in the same directory as this script.")
     sys.exit(1)
 
 # --- Configuration ---
@@ -149,7 +149,7 @@ def analyze_error_distribution():
         print(f"Error saving error counts to CSV: {e}")
 
     # --- Generate and Save Histogram (Bar Chart) ---
-# ... (脚本的其他部分保持不变) ...
+
 
     # --- Generate and Save Histogram (Bar Chart) ---
     try:
