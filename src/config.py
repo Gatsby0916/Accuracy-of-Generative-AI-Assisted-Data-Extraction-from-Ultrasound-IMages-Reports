@@ -2,58 +2,125 @@ import os
 
 # --- Project Root ---
 # Dynamically calculate the project root directory (assuming config.py is in src/)
-# 项目根目录 (src 文件夹的上级目录)
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # --- Base Directories ---
-# 基础数据和结果目录路径
+# Base data and results directory paths
 DATA_DIR = os.path.join(PROJECT_ROOT, "data")
 RESULTS_DIR = os.path.join(PROJECT_ROOT, "results")
 
 # --- Data Sub-directories ---
-# 数据子目录路径
+# Data sub-directory paths
 GROUND_TRUTH_DIR = os.path.join(DATA_DIR, "ground_truth")
 RAW_REPORTS_DIR = os.path.join(DATA_DIR, "raw_reports")
 TEMPLATES_DIR = os.path.join(DATA_DIR, "templates")
 
-# Default raw reports subdirectory to scan (可以根据需要修改)
+# Default raw reports subdirectory to scan (can be modified as needed)
 DEFAULT_PDF_DIR_NAME = "BENSON DEID RRI REPORTS"
 DEFAULT_PDF_SCAN_DIR = os.path.join(RAW_REPORTS_DIR, DEFAULT_PDF_DIR_NAME)
 
-# --- Results Sub-directories ---
-# 结果子目录路径
-ACCURACY_REPORTS_DIR = os.path.join(RESULTS_DIR, "accuracy_reports")
-EXTRACTED_DATA_DIR = os.path.join(RESULTS_DIR, "extracted_data")
-OVERALL_ANALYSIS_DIR = os.path.join(RESULTS_DIR, "overall_analysis")
-PROCESSED_IMAGES_DIR = os.path.join(RESULTS_DIR, "processed_images")
 
-# Extracted Data Sub-directories
-EXTRACTED_EXCEL_DIR = os.path.join(EXTRACTED_DATA_DIR, "excel")
-EXTRACTED_JSON_CHECKED_DIR = os.path.join(EXTRACTED_DATA_DIR, "json_checked")
-EXTRACTED_JSON_RAW_DIR = os.path.join(EXTRACTED_DATA_DIR, "json_raw")
+# --- LLM Provider and Model Configuration ---
+LLM_PROVIDERS = {
+    "openai": {
+        "api_key_env": "OPENAI_API_KEY",
+        "client_name": "openai", # Identifier for the client type
+        "models": {
+            # Display name: actual model ID
+            "gpt-4-turbo": "gpt-4-turbo",
+            "gpt-4o": "gpt-4o",
+            "gpt-4o-mini": "gpt-4o-mini", # 假设 "gpt-4o-mini" 是一个有效的、支持图像的API模型ID
+        },
+        "max_tokens": 4096,
+        "default_model": "gpt-4o" # 这个看起来是正确的，因为 "gpt-4o" 同时是显示名和模型ID
+    },
+    "gemini": {
+        "api_key_env": "GEMINI_API_KEY",
+        "client_name": "gemini",
+        "models": {
+            "gemini-1.5-pro": "gemini-1.5-pro-latest",
+            "gemini-1.5-flash": "gemini-1.5-flash-latest",
+        },
+        "max_tokens": 8192,
+        "default_model": "gemini-1.5-pro-latest" # <--- 修改这里
+    },
+    "claude": {
+        "api_key_env": "CLAUDE_API_KEY",
+        "client_name": "claude",
+        "models": {
+            "claude-3-opus": "claude-3-opus-20240229", # Opus 仍然是一个强大的模型
+            # "claude-3-sonnet-old": "claude-3-sonnet-20240229", # 可以选择保留并重命名显示名称，或移除
+            "claude-3-haiku": "claude-3-haiku-20240307",
+            "claude-3.5-sonnet": "claude-3-5-sonnet-20240620", # 这是更新的 Sonnet
+        },
+        "max_tokens": 4096,
+        "default_model": "claude-3-5-sonnet-20240620" # 将默认模型更新为最新的 Sonnet
+    }
+}
 
-# --- Specific File Paths ---
-# 特定文件的完整路径
+
+# --- Results Sub-directories (Dynamic Path Functions) ---
+def get_provider_model_results_dir(provider_name, model_name_slug):
+    """Base results directory for a specific provider and model."""
+    # Use a "slugified" version of model_name for directory to avoid special characters
+    return os.path.join(RESULTS_DIR, provider_name, model_name_slug.replace('/', '_'))
+
+def get_accuracy_reports_dir(provider_name, model_name_slug):
+    """Directory for accuracy reports of a specific provider and model."""
+    return os.path.join(get_provider_model_results_dir(provider_name, model_name_slug), "accuracy_reports")
+
+def get_extracted_data_dir(provider_name, model_name_slug):
+    """Base directory for extracted data (JSON, Excel) of a specific provider and model."""
+    return os.path.join(get_provider_model_results_dir(provider_name, model_name_slug), "extracted_data")
+
+def get_overall_analysis_dir(provider_name, model_name_slug):
+    """Directory for overall analysis (summary, plots) of a specific provider and model."""
+    return os.path.join(get_provider_model_results_dir(provider_name, model_name_slug), "overall_analysis")
+
+# Processed images are general, not provider/model specific
+PROCESSED_IMAGES_DIR = os.path.join(RESULTS_DIR, "processed_images") # Kept as is
+
+# --- Extracted Data Sub-directories (within provider/model specific extracted_data_dir) ---
+def get_extracted_excel_dir(provider_name, model_name_slug):
+    """Directory for extracted Excel files."""
+    return os.path.join(get_extracted_data_dir(provider_name, model_name_slug), "excel")
+
+def get_extracted_json_checked_dir(provider_name, model_name_slug):
+    """Directory for validated/checked JSON files."""
+    return os.path.join(get_extracted_data_dir(provider_name, model_name_slug), "json_checked")
+
+def get_extracted_json_raw_dir(provider_name, model_name_slug):
+    """Directory for raw JSON files from LLM."""
+    return os.path.join(get_extracted_data_dir(provider_name, model_name_slug), "json_raw")
+
+
+# --- Specific File Paths (Templates and Ground Truth are general) ---
+# Full paths to specific files
 ORIGINAL_GROUND_TRUTH_XLSX = os.path.join(GROUND_TRUTH_DIR, "IMAGENDO_Project_Master___Truncated.xlsx")
-# 指定要从原始 Ground Truth Excel 文件中读取的工作表名称
-GROUND_TRUTH_SHEET_NAME = "MRI_Report Data Entry" # <--- 新增配置项
-CLEANED_GROUND_TRUTH_XLSX = os.path.join(GROUND_TRUTH_DIR, "Stage 1A MRI Data Entry_cleaned.xlsx")
-TEMPLATE_JSON_PATH = os.path.join(TEMPLATES_DIR, "json_template.json")
-SUMMARY_REPORT_TXT = os.path.join(OVERALL_ANALYSIS_DIR, "accuracy_summary.txt")
-ACCURACY_PLOT_PNG = os.path.join(OVERALL_ANALYSIS_DIR, "accuracy_plot.png")
+# Sheet name to read from the original Ground Truth Excel file
+GROUND_TRUTH_SHEET_NAME = "MRI_Report Data Entry"
+CLEANED_GROUND_TRUTH_XLSX = os.path.join(GROUND_TRUTH_DIR, "filtered_output.xlsx")
+TEMPLATE_JSON_PATH = os.path.join(TEMPLATES_DIR, "json_template_edition.json")
 
-# --- API Configuration ---
-# API 相关配置 (密钥在 .env 文件中)
-OPENAI_MODEL_NAME = "gpt-4-turbo"
-MAX_TOKENS = 4000
-# Number of pages to process per report (可以根据需要修改)
-PAGES_PER_REPORT = 4 
+
+# --- Paths for provider/model specific summary files ---
+def get_summary_report_txt_path(provider_name, model_name_slug):
+    """Path to the accuracy summary text file for a specific provider and model."""
+    return os.path.join(get_overall_analysis_dir(provider_name, model_name_slug), "accuracy_summary.txt")
+
+def get_accuracy_plot_png_path(provider_name, model_name_slug):
+    """Path to the accuracy plot PNG file for a specific provider and model."""
+    return os.path.join(get_overall_analysis_dir(provider_name, model_name_slug), "accuracy_plot.png")
+
+
+# --- API Configuration (General script settings) ---
+# Number of pages to process per report (can be modified as needed)
+PAGES_PER_REPORT = 4
 
 # --- Script Parameters ---
-# 脚本参数
 # data_validation.py - difflib cutoff for finding similar keys
 SIMILARITY_CUTOFF = 0.8
-# data_conversion.py - PDF processing range (如果需要固定范围)
+# data_conversion.py - PDF processing range (if fixed range is needed)
 # PDF_PROCESSING_START_INDEX = 2
 # PDF_PROCESSING_END_INDEX = 30
 
@@ -64,16 +131,15 @@ COLUMN_NAME_MAPPING = {
     'Endometrioal lesions Identified Comment': 'Endometrial lesions Identified Comment'
     # Add more mappings here if needed
 }
-# evaluation.py - Default report ID column names to check
+# evaluation.py - Default report ID column names to check in Excel files
 REPORT_ID_COLUMN_NAMES = ["Report ID", "Report"]
 
 # --- Output Formatting ---
-# 输出格式配置
+# JSON output formatting
 JSON_INDENT = 2
-ENSURE_ASCII = False
+ENSURE_ASCII = False # Set to False to allow Unicode characters in JSON output
 
 # --- Logging Configuration (Optional Placeholder) ---
-# 日志配置 (可选占位符)
+# Logging settings
 LOG_FILE_PATH = os.path.join(PROJECT_ROOT, "project_log.log")
 LOG_LEVEL = "INFO" # e.g., DEBUG, INFO, WARNING, ERROR
-
