@@ -60,7 +60,7 @@ def cells_equal(val1, val2):
         non_na_val_str = s2 if isna1 else s1
         # If one is NA and the other is considered an "empty" or "zero" equivalent
         if non_na_val_str in unspecified_strings or non_na_val_str == '0':
-             return True
+              return True
         return False # One is NA, the other is something meaningful -> Not equal
 
     # --- At this point, neither val1 nor val2 is NA ---
@@ -111,9 +111,9 @@ def main(report_id, provider_name, model_name_slug):
     """
     report_id_formatted = report_id[:3] + " " + report_id[3:] # "RRI XXX" for filenames
 
-    print(f"\n开始评估报告 {report_id} (提供商: {provider_name}, 模型: {model_name_slug})")
-    # print(f"原始 report_id: {report_id}")
-    # print(f"格式化 report_id_formatted (用于文件名): {report_id_formatted}")
+    print(f"\nStarting evaluation for report {report_id} (Provider: {provider_name}, Model: {model_name_slug})")
+    # print(f"Original report_id: {report_id}")
+    # print(f"Formatted report_id_formatted (for filenames): {report_id_formatted}")
 
     # --- Get Paths from Config ---
     true_data_path = config.CLEANED_GROUND_TRUTH_XLSX # Ground truth path is general
@@ -130,19 +130,19 @@ def main(report_id, provider_name, model_name_slug):
     try:
         os.makedirs(accuracy_folder, exist_ok=True)
     except Exception as e:
-        print(f"错误：创建准确率报告输出目录 '{accuracy_folder}' 时失败: {e}")
+        print(f"Error: Failed to create accuracy report output directory '{accuracy_folder}': {e}")
         raise IOError(f"Error creating accuracy report output directory: {e}")
 
     # --- Check Input Files ---
-    print(f"真实数据 (Ground Truth) 路径: {true_data_path}")
-    print(f"提取数据 (Extracted Excel) 路径: {extracted_data_path}")
-    print(f"准确率报告输出路径: {accuracy_file}")
+    print(f"Ground Truth Path: {true_data_path}")
+    print(f"Extracted Excel Path: {extracted_data_path}")
+    print(f"Accuracy Report Output Path: {accuracy_file}")
 
     if not os.path.exists(true_data_path):
-        print(f"❌ 错误：真实数据文件未找到: {true_data_path}")
+        print(f"❌ Error: Ground truth file not found: {true_data_path}")
         raise FileNotFoundError(f"Ground truth file not found: {true_data_path}")
     if not os.path.exists(extracted_data_path):
-        print(f"❌ 错误：提取的数据 Excel 文件未找到: {extracted_data_path}")
+        print(f"❌ Error: Extracted data Excel file not found: {extracted_data_path}")
         raise FileNotFoundError(f"Extracted data Excel file not found for {provider_name}/{model_name_slug}: {extracted_data_path}")
 
     # --- Read Data (Read all as string initially to preserve original formatting for diffs) ---
@@ -150,8 +150,8 @@ def main(report_id, provider_name, model_name_slug):
         df_true_orig = pd.read_excel(true_data_path, dtype=str)
         df_extracted_orig = pd.read_excel(extracted_data_path, dtype=str)
     except Exception as e:
-         print(f"❌ 读取 Excel 文件时出错: {e}")
-         raise IOError(f"Error reading Excel files: {e}")
+       print(f"❌ Error reading Excel files: {e}")
+       raise IOError(f"Error reading Excel files: {e}")
 
     # --- Find Report ID Column in both dataframes ---
     # Use the list of possible ID column names from config
@@ -159,9 +159,9 @@ def main(report_id, provider_name, model_name_slug):
     id_col_extracted = next((col for col in config.REPORT_ID_COLUMN_NAMES if col in df_extracted_orig.columns), None)
 
     if not id_col_true:
-        raise ValueError(f"错误：在真实数据文件 '{true_data_path}' 中找不到报告ID列 (已检查: {config.REPORT_ID_COLUMN_NAMES})。")
+        raise ValueError(f"Error: Could not find report ID column in ground truth file '{true_data_path}' (checked for: {config.REPORT_ID_COLUMN_NAMES}).")
     if not id_col_extracted:
-        raise ValueError(f"错误：在提取数据文件 '{extracted_data_path}' 中找不到报告ID列 (已检查: {config.REPORT_ID_COLUMN_NAMES})。")
+        raise ValueError(f"Error: Could not find report ID column in extracted data file '{extracted_data_path}' (checked for: {config.REPORT_ID_COLUMN_NAMES}).")
 
     # --- Filter Data for the specific report_id ---
     # Clean ID columns first for reliable filtering
@@ -177,15 +177,15 @@ def main(report_id, provider_name, model_name_slug):
 
 
     if df_true_filtered.empty:
-        raise ValueError(f"在真实数据中找不到 ID = '{report_id}' 的记录。请检查 Ground Truth 文件。")
+        raise ValueError(f"Could not find record with ID = '{report_id}' in ground truth data. Please check the Ground Truth file.")
     if df_extracted_filtered.empty:
         # Try with formatted ID as a fallback if the extracted file used that in its ID column
         df_extracted_filtered_fallback = df_extracted_orig[df_extracted_orig[id_col_extracted] == report_id_formatted.replace(" ","")].copy()
         if df_extracted_filtered_fallback.empty:
-            raise ValueError(f"在提取数据中找不到 ID = '{report_id}' (或 '{report_id_formatted.replace(' ','')}') 的记录。请检查提取的 Excel 文件。")
+            raise ValueError(f"Could not find record with ID = '{report_id}' (or '{report_id_formatted.replace(' ','')}') in extracted data. Please check the extracted Excel file.")
         else:
             df_extracted_filtered = df_extracted_filtered_fallback
-            print(f"信息: 在提取数据中使用回退ID '{report_id_formatted.replace(' ','')}' 找到了记录。")
+            print(f"Info: Found record in extracted data using fallback ID '{report_id_formatted.replace(' ','')}'.")
 
 
     # --- Standardize Column Names ---
@@ -211,11 +211,11 @@ def main(report_id, provider_name, model_name_slug):
     if id_col_in_common and id_col_in_common not in common_cols: # Should not happen if logic is right
          common_cols.insert(0, id_col_in_common) # Add ID col if somehow missing but found
     elif not id_col_in_common and common_cols : # If no ID column in common, pick first common as placeholder for ordering
-        print(f"警告: 报告ID列未在共同列中找到。将不包含在比较列的显式排序中。共同列: {common_cols[:3]}...")
+        print(f"Warning: Report ID column not found in common columns. It will not be explicitly ordered in the comparison columns. Common columns: {common_cols[:3]}...")
 
 
     if not common_cols:
-        raise ValueError("错误：真实数据和提取数据之间没有共同的列名，无法比较。")
+        raise ValueError("Error: No common column names between ground truth and extracted data, cannot compare.")
 
     df_true_aligned = df_true_std[common_cols].reset_index(drop=True)
     df_extracted_aligned = df_extracted_std[common_cols].reset_index(drop=True)
@@ -227,9 +227,9 @@ def main(report_id, provider_name, model_name_slug):
 
     # Final shape check after alignment and preprocessing
     if df_true_processed.shape != df_extracted_processed.shape:
-        raise ValueError(f"错误：对齐和预处理后，数据框形状不匹配。 True: {df_true_processed.shape}, Extracted: {df_extracted_processed.shape}. Columns: {common_cols}")
+        raise ValueError(f"Error: DataFrame shapes do not match after alignment and preprocessing. True: {df_true_processed.shape}, Extracted: {df_extracted_processed.shape}. Columns: {common_cols}")
     if df_true_processed.empty: # Should be caught by earlier checks if no rows were found
-        raise ValueError("错误：处理后的数据框为空，无法比较。")
+        raise ValueError("Error: Processed DataFrame is empty, cannot compare.")
 
     # --- Compare DataFrames Cell by Cell and Calculate Accuracy ---
     true_values_for_comparison = df_true_processed.values
@@ -239,7 +239,7 @@ def main(report_id, provider_name, model_name_slug):
         # Apply the enhanced cells_equal function element-wise
         correct_mask = np.vectorize(cells_equal)(true_values_for_comparison, extracted_values_for_comparison)
     except Exception as e:
-        print(f"比较单元格时发生内部错误: {e}")
+        print(f"Internal error during cell comparison: {e}")
         # Detailed debugging for cell-wise comparison errors:
         # for r_idx in range(true_values_for_comparison.shape[0]):
         #     for c_idx in range(true_values_for_comparison.shape[1]):
@@ -250,7 +250,7 @@ def main(report_id, provider_name, model_name_slug):
         #             print(f"  True Val: '{true_values_for_comparison[r_idx, c_idx]}', Type: {type(true_values_for_comparison[r_idx, c_idx])}")
         #             print(f"  Extracted Val: '{extracted_values_for_comparison[r_idx, c_idx]}', Type: {type(extracted_values_for_comparison[r_idx, c_idx])}")
         #             print(f"  Cell-specific error: {cell_e}")
-        raise RuntimeError(f"比较单元格时出错: {e}")
+        raise RuntimeError(f"Error during cell comparison: {e}")
 
     total_cells = correct_mask.size
     correct_cells = np.sum(correct_mask)
@@ -258,11 +258,11 @@ def main(report_id, provider_name, model_name_slug):
     accuracy = (correct_cells / total_cells) if total_cells > 0 else 0.0 # Ensure float division and handle empty case
 
     # --- Print and Save Results ---
-    print(f"\n📊 单元格级别比较结果 (ID={report_id_formatted}, 提供商={provider_name}, 模型={model_name_slug})")
-    print(f"总可比较单元格 : {total_cells}")
-    print(f"正确单元格     : {correct_cells}")
-    print(f"错误单元格     : {incorrect_cells}")
-    print(f"✅ 总体准确率   : {accuracy:.4f}")
+    print(f"\n📊 Cell-Level Comparison Results (ID={report_id_formatted}, Provider={provider_name}, Model={model_name_slug})")
+    print(f"Total Comparable Cells : {total_cells}")
+    print(f"Correct Cells          : {correct_cells}")
+    print(f"Incorrect Cells        : {incorrect_cells}")
+    print(f"✅ Overall Accuracy     : {accuracy:.4f}")
 
     try:
         with open(accuracy_file, "w", encoding="utf-8") as f:
@@ -305,13 +305,13 @@ def main(report_id, provider_name, model_name_slug):
                     f.write("\n--- Differences ---\n")
                     f.write(diff_output)
             else:
-                 print("信息: 报告了错误单元格，但未能生成差异列表。请检查比较逻辑。")
+                 print("Info: Incorrect cells were reported, but failed to generate a difference list. Please check the comparison logic.")
 
 
-        print(f"\n准确率和差异详情已保存到: {accuracy_file}")
+        print(f"\nAccuracy and difference details have been saved to: {accuracy_file}")
 
     except Exception as e:
-        print(f"❌ 保存准确率文件或差异时出错: {e}")
+        print(f"❌ Error saving accuracy file or differences: {e}")
         # Do not re-raise here if main processing was successful, just log the save error.
         # However, if saving the accuracy is critical, then re-raise.
         # For now, let's consider it a non-fatal error for the script's exit code.
@@ -322,8 +322,8 @@ def main(report_id, provider_name, model_name_slug):
 if __name__ == "__main__":
     # This script expects three arguments: report_id, provider_name, model_name_slug
     if len(sys.argv) != 4:
-        print(f"用法: python {os.path.basename(__file__)} <report_id> <provider_name> <model_name_slug>")
-        print("示例: python evaluation.py RRI002 openai gpt-4o")
+        print(f"Usage: python {os.path.basename(__file__)} <report_id> <provider_name> <model_name_slug>")
+        print("Example: python evaluation.py RRI002 openai gpt-4o")
         sys.exit(1)
 
     report_id_arg = sys.argv[1]
@@ -332,14 +332,14 @@ if __name__ == "__main__":
 
     try:
         main(report_id_arg, provider_name_arg, model_name_slug_arg)
-        print(f"\n报告 {report_id_arg} (提供商: {provider_name_arg}, 模型: {model_name_slug_arg}) 的评估完成。")
+        print(f"\nEvaluation completed for report {report_id_arg} (Provider: {provider_name_arg}, Model: {model_name_slug_arg}).")
     except (FileNotFoundError, ValueError, IOError, RuntimeError) as e:
         # Catch specific errors raised from main() for cleaner exit message
-        print(f"\n处理报告 {report_id_arg} (提供商: {provider_name_arg}, 模型: {model_name_slug_arg}) 评估时发生错误: {e}")
+        print(f"\nAn error occurred while evaluating report {report_id_arg} (Provider: {provider_name_arg}, Model: {model_name_slug_arg}): {e}")
         sys.exit(1) # Exit with a non-zero code to indicate failure
     except Exception as e:
         # Catch any other unexpected errors
-        print(f"\n处理报告 {report_id_arg} (提供商: {provider_name_arg}, 模型: {model_name_slug_arg}) 评估时发生未预料的严重错误: {e}")
+        print(f"\nAn unexpected critical error occurred while evaluating report {report_id_arg} (Provider: {provider_name_arg}, Model: {model_name_slug_arg}): {e}")
         # import traceback # For debugging
         # traceback.print_exc() # For debugging
         sys.exit(1)

@@ -17,28 +17,28 @@ def select_llm_provider_and_model():
         tuple: (selected_provider_name, selected_model_display_name, selected_model_id)
                Returns (None, None, None) if selection is aborted or fails.
     """
-    print("\n--- 选择LLM提供商 ---")
+    print("\n--- Select LLM Provider ---")
     providers = list(config.LLM_PROVIDERS.keys())
     for i, provider_name in enumerate(providers):
         print(f"{i+1}. {provider_name.capitalize()}")
-    print(f"{len(providers)+1}. 退出选择")
+    print(f"{len(providers)+1}. Exit Selection")
 
     selected_provider_name = None
     while True:
         try:
-            choice = int(input(f"请输入选项 (1-{len(providers)+1}): ")) - 1
+            choice = int(input(f"Please enter an option (1-{len(providers)+1}): ")) - 1
             if 0 <= choice < len(providers):
                 selected_provider_name = providers[choice]
                 break
             elif choice == len(providers):
-                print("用户选择退出。")
+                print("User chose to exit.")
                 return None, None, None
             else:
-                print("无效选项，请重新输入。")
+                print("Invalid option, please enter again.")
         except ValueError:
-            print("无效输入，请输入数字。")
+            print("Invalid input, please enter a number.")
 
-    print(f"\n--- 为 {selected_provider_name.capitalize()} 选择模型 ---")
+    print(f"\n--- Select a Model for {selected_provider_name.capitalize()} ---")
     provider_config = config.LLM_PROVIDERS[selected_provider_name]
     models_dict = provider_config["models"]
     model_display_names = list(models_dict.keys())
@@ -58,16 +58,16 @@ def select_llm_provider_and_model():
                 default_model_display = name
                 break
         if default_model_display: # If a display name was found for the default_model_id
-             print(f"{len(model_display_names)+option_offset}. 使用默认模型: {default_model_display} ({default_model_id})")
+             print(f"{len(model_display_names)+option_offset}. Use default model: {default_model_display} ({default_model_id})")
         else: 
             # This case means default_model_id in config.py doesn't match any model_id in the 'models' dict values.
             # It's better to ensure config.py is consistent.
-            print(f"{len(model_display_names)+option_offset}. 使用默认模型 ID: {default_model_id} (配置中的显示名称可能不匹配或default_model值不正确)")
+            print(f"{len(model_display_names)+option_offset}. Use default model ID: {default_model_id} (Display name in config may not match or default_model value is incorrect)")
 
 
-    # Corrected numbering for "返回上一步" and "退出选择"
-    print(f"{len(model_display_names)+option_offset+1}. 返回上一步")
-    print(f"{len(model_display_names)+option_offset+2}. 退出选择")
+    # Corrected numbering for "Go Back" and "Exit Selection"
+    print(f"{len(model_display_names)+option_offset+1}. Go Back")
+    print(f"{len(model_display_names)+option_offset+2}. Exit Selection")
 
     selected_model_id = None
     selected_model_display_name = None
@@ -75,7 +75,7 @@ def select_llm_provider_and_model():
         try:
             # Max option number for the current menu
             current_max_option = len(model_display_names) + option_offset + 2 
-            prompt_text = f"请输入选项 (1-{current_max_option}): "
+            prompt_text = f"Please enter an option (1-{current_max_option}): "
             choice_input = int(input(prompt_text)) -1 # User input is 1-based, convert to 0-based
 
             if 0 <= choice_input < len(model_display_names): # Choice is one of the listed models
@@ -86,19 +86,19 @@ def select_llm_provider_and_model():
             elif default_model_id and option_offset == 1 and choice_input == len(model_display_names): 
                 selected_model_id = default_model_id
                 selected_model_display_name = default_model_display or selected_model_id # Fallback if display name wasn't found
-                print(f"已选择默认模型: {selected_model_display_name} (ID: {selected_model_id})")
+                print(f"Selected default model: {selected_model_display_name} (ID: {selected_model_id})")
                 break
-            elif choice_input == len(model_display_names) + option_offset: # Choice is "返回上一步"
+            elif choice_input == len(model_display_names) + option_offset: # Choice is "Go Back"
                 return select_llm_provider_and_model() # Recursive call to re-select provider
-            elif choice_input == len(model_display_names) + option_offset + 1: # Choice is "退出选择"
-                print("用户选择退出。")
+            elif choice_input == len(model_display_names) + option_offset + 1: # Choice is "Exit Selection"
+                print("User chose to exit.")
                 return None, None, None
             else:
-                print("无效选项，请重新输入。")
+                print("Invalid option, please enter again.")
         except ValueError:
-            print("无效输入，请输入数字。")
+            print("Invalid input, please enter a number.")
     
-    print(f"已选择提供商: {selected_provider_name.capitalize()}, 模型: {selected_model_display_name} (ID: {selected_model_id})")
+    print(f"Selected Provider: {selected_provider_name.capitalize()}, Model: {selected_model_display_name} (ID: {selected_model_id})")
     return selected_provider_name, selected_model_display_name, selected_model_id
 
 
@@ -138,24 +138,24 @@ def run_script(script_name, report_id, script_specific_arg1=None, script_specifi
              print(process.stderr, file=sys.stderr)
         return True
     except FileNotFoundError:
-         # This error could mean VENV_PYTHON_EXECUTABLE is incorrect or script_path is wrong
-         print(f"错误：脚本或Python解释器未找到。命令: {' '.join(command)}", file=sys.stderr)
-         return False
+       # This error could mean VENV_PYTHON_EXECUTABLE is incorrect or script_path is wrong
+       print(f"Error: Script or Python interpreter not found. Command: {' '.join(command)}", file=sys.stderr)
+       return False
     except subprocess.CalledProcessError as e:
-        print(f"!! 错误: {script_name} 执行失败 (返回码: {e.returncode})", file=sys.stderr)
+        print(f"!! Error: {script_name} execution failed (return code: {e.returncode})", file=sys.stderr)
         print(f"--- Error Output from {script_name} ---", file=sys.stderr)
         print(e.stdout if e.stdout else "[No stdout]", file=sys.stderr)
         print(e.stderr if e.stderr else "[No stderr]", file=sys.stderr)
         return False
     except Exception as e:
-         print(f"!! 运行 {script_name} 时发生意外错误: {e}", file=sys.stderr)
-         return False
+       print(f"!! An unexpected error occurred while running {script_name}: {e}", file=sys.stderr)
+       return False
 
 def process_report(report_id, provider_name, model_id, model_name_slug):
     """
     Processes a single report through the entire pipeline using the specified LLM.
     """
-    print(f"\n{'#'*20} 开始处理报告: {report_id} 使用 {provider_name.capitalize()}/{model_id} {'#'*20}")
+    print(f"\n{'#'*20} Starting to process report: {report_id} using {provider_name.capitalize()}/{model_id} {'#'*20}")
 
     script_api = "api_interaction.py"
     script_validate = "data_validation.py"
@@ -168,22 +168,22 @@ def process_report(report_id, provider_name, model_id, model_name_slug):
         os.makedirs(config.get_extracted_excel_dir(provider_name, model_name_slug), exist_ok=True)
         os.makedirs(config.get_accuracy_reports_dir(provider_name, model_name_slug), exist_ok=True)
     except Exception as e:
-        print(f"错误：为 {provider_name}/{model_name_slug} 创建输出目录时出错: {e}", file=sys.stderr)
+        print(f"Error: Could not create output directories for {provider_name}/{model_name_slug}: {e}", file=sys.stderr)
         return False
 
-    print(f"\n[步骤 1/4] 正在调用 {script_api} 提取数据...")
+    print(f"\n[Step 1/4] Calling {script_api} to extract data...")
     if not run_script(script_api, report_id, provider_name, model_id): return False
 
-    print(f"\n[步骤 2/4] 正在调用 {script_validate} 校验和修正提取的数据...")
+    print(f"\n[Step 2/4] Calling {script_validate} to validate and fix the extracted data...")
     if not run_script(script_validate, report_id, provider_name, model_name_slug): return False
 
-    print(f"\n[步骤 3/4] 正在调用 {script_to_excel} 转换 JSON 为 Excel...")
+    print(f"\n[Step 3/4] Calling {script_to_excel} to convert JSON to Excel...")
     if not run_script(script_to_excel, report_id, provider_name, model_name_slug): return False
 
-    print(f"\n[步骤 4/4] 正在调用 {script_evaluate} 进行对比和评估...")
+    print(f"\n[Step 4/4] Calling {script_evaluate} for comparison and evaluation...")
     if not run_script(script_evaluate, report_id, provider_name, model_name_slug): return False
 
-    print(f"\n报告 {report_id} ({provider_name.capitalize()}/{model_id}) 处理成功完成。")
+    print(f"\nReport {report_id} ({provider_name.capitalize()}/{model_id}) processed successfully.")
     return True
 
 def find_report_ids_from_pdfs(pdf_directory):
@@ -192,10 +192,10 @@ def find_report_ids_from_pdfs(pdf_directory):
     """
     report_ids = set()
     pattern = re.compile(r'^RRI\s?(\d{3})\.pdf$', re.IGNORECASE)
-    print(f"\n正在扫描 PDF 目录以查找报告 ID: {pdf_directory}")
+    print(f"\nScanning PDF directory to find report IDs: {pdf_directory}")
 
     if not os.path.isdir(pdf_directory):
-        print(f"警告：指定的 PDF 目录不存在: {pdf_directory}")
+        print(f"Warning: The specified PDF directory does not exist: {pdf_directory}")
         return []
     try:
         for filename in os.listdir(pdf_directory):
@@ -205,14 +205,14 @@ def find_report_ids_from_pdfs(pdf_directory):
                 report_id = f"RRI{report_num}" 
                 report_ids.add(report_id)
     except Exception as e:
-        print(f"扫描 PDF 目录时出错: {e}")
+        print(f"Error while scanning PDF directory: {e}")
         return [] 
 
     sorted_ids = sorted(list(report_ids))
     if sorted_ids:
-        print(f"发现 {len(sorted_ids)} 个报告 ID: {', '.join(sorted_ids)}")
+        print(f"Found {len(sorted_ids)} report IDs: {', '.join(sorted_ids)}")
     else:
-        print(f"在目录 '{pdf_directory}' 中未发现符合 'RRIXXX.pdf' 格式的 PDF 文件。")
+        print(f"No PDF files matching the 'RRIXXX.pdf' format were found in the directory '{pdf_directory}'.")
     return sorted_ids
 
 
@@ -225,50 +225,50 @@ def run_main_workflow(report_ids_to_process, provider_name, model_id, model_name
     failure_count = 0
 
     if not report_ids_to_process:
-        print("没有需要处理的报告 ID。")
+        print("No report IDs to process.")
         return
 
-    print(f"\n准备使用 {provider_name.capitalize()}/{model_id} 处理 {total_reports} 个报告: {', '.join(report_ids_to_process)}")
+    print(f"\nPreparing to process {total_reports} reports with {provider_name.capitalize()}/{model_id}: {', '.join(report_ids_to_process)}")
 
     for i, report_id in enumerate(report_ids_to_process):
-        print(f"\n--- 开始处理第 {i+1}/{total_reports} 个报告: {report_id} ---")
+        print(f"\n--- Starting to process report {i+1}/{total_reports}: {report_id} ---")
         success = process_report(report_id, provider_name, model_id, model_name_slug)
         if success:
             success_count += 1
         else:
             failure_count += 1
-            print(f"!!! 报告 {report_id} ({provider_name.capitalize()}/{model_id}) 处理失败或中止 !!!", file=sys.stderr)
+            print(f"!!! Report {report_id} ({provider_name.capitalize()}/{model_id}) processing failed or was aborted !!!", file=sys.stderr)
 
     print("\n" + "="*50)
-    print(f"所有选定报告处理流程结束 (使用 {provider_name.capitalize()}/{model_id}).")
-    print(f"总计: {total_reports} 个报告")
-    print(f"成功: {success_count} 个")
-    print(f"失败: {failure_count} 个")
+    print(f"Processing flow for all selected reports has finished (using {provider_name.capitalize()}/{model_id}).")
+    print(f"Total: {total_reports} reports")
+    print(f"Successful: {success_count}")
+    print(f"Failed: {failure_count}")
     print("="*50)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="处理MRI报告，允许选择LLM提供商和模型，自动从PDF发现ID或处理指定ID。"
+        description="Process MRI reports, allowing selection of LLM provider and model, and auto-discovery of IDs from PDFs or processing of specified IDs."
     )
     parser.add_argument(
         '-i', '--report-id',
         nargs='+', 
-        help="指定要处理的一个或多个报告 ID (例如: RRI002 RRI004)。如果提供此项，将覆盖自动发现。"
+        help="Specify one or more report IDs to process (e.g., RRI002 RRI004). If provided, this will override auto-discovery."
     )
     parser.add_argument(
         '--pdf-dir',
         default=config.DEFAULT_PDF_SCAN_DIR, 
-        help=f"指定包含 PDF 报告的目录路径，用于自动发现报告 ID (默认: {config.DEFAULT_PDF_SCAN_DIR})"
+        help=f"Specify the directory path containing PDF reports for automatic discovery of report IDs (default: {config.DEFAULT_PDF_SCAN_DIR})"
     )
     parser.add_argument(
         '--provider',
         choices=list(config.LLM_PROVIDERS.keys()), 
-        help="LLM提供商 (例如: openai, gemini, claude)。如果提供，将跳过交互式选择。"
+        help="LLM provider (e.g., openai, gemini, claude). If provided, interactive selection will be skipped."
     )
     parser.add_argument(
         '--model',
-        help="LLM模型ID或显示名称 (例如: gpt-4o, gemini-1.5-pro)。需要与 --provider 一起使用。如果提供，将跳过交互式选择。"
+        help="LLM model ID or display name (e.g., gpt-4o, gemini-1.5-pro). Must be used with --provider. If provided, interactive selection will be skipped."
     )
     args = parser.parse_args()
 
@@ -278,53 +278,53 @@ if __name__ == "__main__":
     selected_model_id = None
 
     if selected_provider_name and cli_model_input:
-        print(f"通过命令行参数选择LLM: 提供商='{selected_provider_name}', 模型输入='{cli_model_input}'")
+        print(f"LLM selected via command-line arguments: Provider='{selected_provider_name}', Model Input='{cli_model_input}'")
         if selected_provider_name not in config.LLM_PROVIDERS:
-            print(f"错误：无效的提供商 '{selected_provider_name}'. 可选项: {list(config.LLM_PROVIDERS.keys())}")
+            print(f"Error: Invalid provider '{selected_provider_name}'. Options are: {list(config.LLM_PROVIDERS.keys())}")
             sys.exit(1)
         
         provider_conf = config.LLM_PROVIDERS[selected_provider_name]
         if cli_model_input in provider_conf["models"]: # Check if it's a display name
             selected_model_id = provider_conf["models"][cli_model_input]
-            print(f"模型 '{cli_model_input}' 被识别为显示名称，对应模型ID: '{selected_model_id}'.")
+            print(f"Model '{cli_model_input}' was identified as a display name, corresponding model ID: '{selected_model_id}'.")
         elif cli_model_input in provider_conf["models"].values(): # Check if it's an actual model ID
             selected_model_id = cli_model_input
-            print(f"模型 '{cli_model_input}' 被识别为有效的模型ID.")
+            print(f"Model '{cli_model_input}' was identified as a valid model ID.")
         else:
-            print(f"错误：提供商 '{selected_provider_name}' 的模型 '{cli_model_input}' 无效。")
-            print(f"可用模型 (显示名称: ID): {provider_conf['models']}")
+            print(f"Error: Model '{cli_model_input}' for provider '{selected_provider_name}' is invalid.")
+            print(f"Available models (Display Name: ID): {provider_conf['models']}")
             sys.exit(1)
     else:
         # Interactive selection if provider and model are not fully specified via CLI
         _provider, _display_name, _model_id = select_llm_provider_and_model()
         if not _provider: # User exited selection
-            print("未选择LLM，程序退出。")
+            print("No LLM selected, exiting program.")
             sys.exit(0)
         selected_provider_name = _provider
         selected_model_id = _model_id
 
     if not selected_model_id: 
-        print("错误：未能确定有效的模型ID。程序退出。")
+        print("Error: Could not determine a valid model ID. Exiting program.")
         sys.exit(1)
     # Create a filesystem-safe slug from the model_id for directory naming
     model_name_slug = selected_model_id.replace('/', '_').replace(':', '_') 
 
     if args.report_id:
         reports_to_run = args.report_id
-        print(f"\n用户指定了处理报告 ID: {', '.join(reports_to_run)}")
+        print(f"\nUser specified processing report IDs: {', '.join(reports_to_run)}")
     else:
         reports_to_run = find_report_ids_from_pdfs(args.pdf_dir)
         if not reports_to_run:
-             print("\n未能自动发现任何报告 ID。如果期望处理报告，请检查 '--pdf-dir' 或使用 '-i' 指定ID。程序退出。")
+             print("\nCould not automatically discover any report IDs. If you expect to process reports, check '--pdf-dir' or specify IDs with '-i'. Exiting program.")
              sys.exit(0) 
 
     # Ensure the general processed_images directory exists (it's not provider/model specific)
     try:
         os.makedirs(config.PROCESSED_IMAGES_DIR, exist_ok=True)
     except Exception as e:
-        print(f"警告：创建通用图像目录 '{config.PROCESSED_IMAGES_DIR}' 时出错: {e}", file=sys.stderr)
+        print(f"Warning: An error occurred while creating the general images directory '{config.PROCESSED_IMAGES_DIR}': {e}", file=sys.stderr)
         # This might not be fatal if images are already processed, but good to note.
 
     # Run the main workflow with the selected LLM provider and model details
     run_main_workflow(reports_to_run, selected_provider_name, selected_model_id, model_name_slug)
-    print("\n处理完成。")
+    print("\nProcessing finished.")

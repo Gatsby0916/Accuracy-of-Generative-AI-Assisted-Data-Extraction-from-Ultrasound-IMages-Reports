@@ -19,13 +19,13 @@ def load_json(file_path):
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"错误：无法加载 JSON 文件，未找到: {file_path}")
+        print(f"Error: Could not load JSON file, not found: {file_path}")
         return None
     except json.JSONDecodeError as e: # Corrected typo from JSONDecodeErrorr
-        print(f"错误：解析 JSON 文件时出错: {file_path} - {e}")
+        print(f"Error: Error parsing JSON file: {file_path} - {e}")
         return None
     except Exception as e:
-        print(f"加载 JSON 文件 {file_path} 时发生未知错误: {e}")
+        print(f"An unknown error occurred while loading JSON file {file_path}: {e}")
         return None
 
 def get_keys(data):
@@ -69,17 +69,17 @@ def check_and_fix(template_path, input_json_path, output_json_path):
     Returns:
         bool: True if successful, False otherwise.
     """
-    print(f"\n正在校验文件: {os.path.basename(input_json_path)}")
-    print(f"使用模板: {os.path.basename(template_path)}")
+    print(f"\nValidating file: {os.path.basename(input_json_path)}")
+    print(f"Using template: {os.path.basename(template_path)}")
 
     template_data = load_json(template_path)
     extracted_data = load_json(input_json_path)
 
     if template_data is None:
-        print(f"错误：无法加载模板JSON文件 '{template_path}'，校验中止。")
+        print(f"Error: Could not load template JSON file '{template_path}', validation aborted.")
         return False
     if extracted_data is None:
-        print(f"错误：无法加载提取的JSON文件 '{input_json_path}'，校验中止。")
+        print(f"Error: Could not load extracted JSON file '{input_json_path}', validation aborted.")
         # It might be an empty file or truly missing, either way, can't proceed.
         return False # Or raise an error if this should be fatal
 
@@ -99,14 +99,14 @@ def check_and_fix(template_path, input_json_path, output_json_path):
 
     # 1. Add missing keys (present in template, missing in extracted)
     if missing_in_extracted:
-        print("信息：提取文件中缺失以下字段名 (将使用模板默认值 '' 添加):")
+        print("Info: The following field names are missing in the extracted file (will be added with the template's default value ''):")
         for key in sorted(list(missing_in_extracted)): # Sort for consistent output
             print(f"  - {key}")
             corrected_data[key] = template_data.get(key, "") # Use template's default or ""
 
     # 2. Rename similar keys (misspelled in extracted, correct in template)
     if similar_keys_to_rename:
-        print("信息：以下提取字段名可能拼写错误，已尝试修正 (提取文件 -> 模板):")
+        print("Info: The following extracted field names may be misspelled and have been corrected (extracted file -> template):")
         for wrong_key, correct_key in sorted(similar_keys_to_rename.items()): # Sort for consistency
             print(f"  - '{wrong_key}' -> '{correct_key}'")
             if wrong_key in corrected_data: # Ensure the key still exists before popping
@@ -114,17 +114,17 @@ def check_and_fix(template_path, input_json_path, output_json_path):
 
     # 3. Delete extra keys (present in extracted, not in template and not similar)
     if keys_to_delete:
-        print("信息：提取文件中发现以下多余字段名 (将被移除):")
+        print("Info: The following extra field names were found in the extracted file (will be removed):")
         for key in sorted(list(keys_to_delete)): # Sort for consistent output
             print(f"  - {key}")
             if key in corrected_data: # Ensure the key still exists before deleting
-                 del corrected_data[key]
+                del corrected_data[key]
     
     # Ensure the output directory exists
     try:
         os.makedirs(os.path.dirname(output_json_path), exist_ok=True)
     except Exception as e:
-        print(f"错误：创建输出目录 '{os.path.dirname(output_json_path)}' 时失败: {e}")
+        print(f"Error: Failed to create output directory '{os.path.dirname(output_json_path)}': {e}")
         return False
 
     # Save the corrected data
@@ -132,10 +132,10 @@ def check_and_fix(template_path, input_json_path, output_json_path):
         with open(output_json_path, 'w', encoding='utf-8') as f:
             # Use formatting constants from config
             json.dump(corrected_data, f, indent=config.JSON_INDENT, ensure_ascii=config.ENSURE_ASCII)
-        print(f"\n校验完成。修正后的文件已保存至: {output_json_path}")
+        print(f"\nValidation complete. Corrected file has been saved to: {output_json_path}")
         return True
     except Exception as e:
-        print(f"保存修正后的 JSON 文件 '{output_json_path}' 时出错: {e}")
+        print(f"Error saving the corrected JSON file '{output_json_path}': {e}")
         return False
 
 def main(report_id, provider_name, model_name_slug):
@@ -161,26 +161,26 @@ def main(report_id, provider_name, model_name_slug):
         f"{report_id_formatted}_extracted_data.json"
     )
 
-    print(f"\n开始校验报告 {report_id} (提供商: {provider_name}, 模型: {model_name_slug})")
-    print(f"输入原始JSON路径: {input_json_path}")
-    print(f"输出校验后JSON路径: {output_json_path}")
+    print(f"\nStarting validation for report {report_id} (Provider: {provider_name}, Model: {model_name_slug})")
+    print(f"Input raw JSON path: {input_json_path}")
+    print(f"Output validated JSON path: {output_json_path}")
 
 
     if not os.path.exists(input_json_path):
-         print(f"错误：需要校验的输入 JSON 文件未找到: {input_json_path}")
-         # This error will be caught by the main.py's subprocess handling if raised
-         raise FileNotFoundError(f"Input JSON file for validation not found: {input_json_path}")
+       print(f"Error: Input JSON file for validation not found: {input_json_path}")
+       # This error will be caught by the main.py's subprocess handling if raised
+       raise FileNotFoundError(f"Input JSON file for validation not found: {input_json_path}")
 
     success = check_and_fix(template_path, input_json_path, output_json_path)
     if not success:
         # This error will be caught by the main.py's subprocess handling if raised
-        raise RuntimeError(f"校验和修正JSON文件失败，报告 {report_id} (提供商: {provider_name}, 模型: {model_name_slug})")
+        raise RuntimeError(f"Failed to validate and fix the JSON file for report {report_id} (Provider: {provider_name}, Model: {model_name_slug})")
 
 if __name__ == "__main__":
     # This script expects three arguments: report_id, provider_name, model_name_slug
     if len(sys.argv) != 4:
-        print(f"用法: python {os.path.basename(__file__)} <report_id> <provider_name> <model_name_slug>")
-        print("示例: python data_validation.py RRI002 openai gpt-4o")
+        print(f"Usage: python {os.path.basename(__file__)} <report_id> <provider_name> <model_name_slug>")
+        print("Example: python data_validation.py RRI002 openai gpt-4o")
         sys.exit(1)
 
     report_id_arg = sys.argv[1]
@@ -189,8 +189,8 @@ if __name__ == "__main__":
 
     try:
         main(report_id_arg, provider_name_arg, model_name_slug_arg)
-        print(f"\n报告 {report_id_arg} (提供商: {provider_name_arg}, 模型: {model_name_slug_arg}) 的JSON数据校验完成。")
+        print(f"\nJSON data validation completed for report {report_id_arg} (Provider: {provider_name_arg}, Model: {model_name_slug_arg}).")
     except Exception as e:
         # Error messages from main() or check_and_fix() should be informative
-        print(f"\n处理报告 {report_id_arg} (提供商: {provider_name_arg}, 模型: {model_name_slug_arg}) 的JSON数据校验时发生错误，已中止。")
+        print(f"\nAn error occurred while validating JSON data for report {report_id_arg} (Provider: {provider_name_arg}, Model: {model_name_slug_arg}), aborted.")
         sys.exit(1) # Exit with a non-zero code to indicate failure

@@ -14,7 +14,7 @@ except ImportError:
     try:
         from src import config # If running as a module from project root
     except ImportError:
-        print("错误：无法导入 config.py。请确保此脚本与 config.py 的相对路径正确，或者将包含 config.py 的目录添加到 Python 路径中。")
+        print("Error: Could not import config.py. Please ensure the relative path to config.py is correct, or add the directory containing it to the Python path.")
         sys.exit(1)
 
 # Matplotlib font setup for Chinese characters (from your script)
@@ -22,10 +22,10 @@ from matplotlib import rcParams
 try:
     rcParams['font.sans-serif'] = ['SimHei']
     rcParams['axes.unicode_minus'] = False
-    print("已尝试设置中文字体为 'SimHei'。")
+    print("Attempted to set Chinese font to 'SimHei'.")
 except Exception as e:
-    print(f"设置中文字体失败: {e}")
-    print("请确保已安装 SimHei 或其他中文字体，并尝试修改脚本中的字体名称。")
+    print(f"Failed to set Chinese font: {e}")
+    print("Please ensure SimHei or another Chinese font is installed, and try modifying the font name in the script.")
 
 
 # --- Function to Parse Errors from a Single File ---
@@ -36,8 +36,8 @@ def parse_error_columns_from_file(filepath, compared_cols_for_report=None):
     Args:
         filepath (str): Path to the _accuracy.txt file.
         compared_cols_for_report (list, optional): A list of canonical column names that were
-                                                 actually compared for this specific report.
-                                                 Used to normalize parsed error column names.
+                                                     actually compared for this specific report.
+                                                     Used to normalize parsed error column names.
     Returns:
         list: A list of (potentially normalized) column names where errors occurred.
     """
@@ -89,7 +89,7 @@ def parse_error_columns_from_file(filepath, compared_cols_for_report=None):
                     col_idx_in_table_header = -1 
             
         if data_start_line_idx == -1 or col_idx_in_table_header == -1:
-            # print(f"警告：在文件 {os.path.basename(filepath)} 中未能找到或解析 'Differences' 表的表头。")
+            # print(f"Warning: Could not find or parse 'Differences' table header in file {os.path.basename(filepath)}.")
             return []
 
         # Parse data rows for error column names
@@ -128,9 +128,9 @@ def parse_error_columns_from_file(filepath, compared_cols_for_report=None):
                 error_columns.append(best_match_for_error_col)
 
     except FileNotFoundError:
-        print(f"警告：准确率文件未找到: {filepath}")
+        print(f"Warning: Accuracy file not found: {filepath}")
     except Exception as e:
-        print(f"解析文件 {os.path.basename(filepath)} 时出错: {e}")
+        print(f"Error while parsing file {os.path.basename(filepath)}: {e}")
 
     return error_columns
 
@@ -143,7 +143,7 @@ def analyze_error_distribution_for_provider_model(provider_name, model_name_slug
         provider_name (str): The LLM provider name.
         model_name_slug (str): The model name slug (filesystem-safe).
     """
-    print(f"\n--- 为提供商 '{provider_name}', 模型 '{model_name_slug}' 分析错误分布 ---")
+    print(f"\n--- Analyzing Error Distribution for Provider '{provider_name}', Model '{model_name_slug}' ---")
 
     current_accuracy_dir = config.get_accuracy_reports_dir(provider_name, model_name_slug)
     current_analysis_dir = config.get_overall_analysis_dir(provider_name, model_name_slug)
@@ -154,24 +154,24 @@ def analyze_error_distribution_for_provider_model(provider_name, model_name_slug
     try:
         os.makedirs(current_analysis_dir, exist_ok=True)
     except Exception as e:
-        print(f"错误：创建分析目录 '{current_analysis_dir}' 时失败: {e}")
+        print(f"Error: Failed to create analysis directory '{current_analysis_dir}': {e}")
         return
 
     all_error_columns_aggregated = []
     report_files_processed_count = 0
 
-    print(f"从以下路径读取准确率报告: {current_accuracy_dir}")
+    print(f"Reading accuracy reports from: {current_accuracy_dir}")
     if not os.path.isdir(current_accuracy_dir):
-        print(f"错误：准确率报告目录未找到: {current_accuracy_dir}")
-        print("请确保已为指定的提供商和模型运行评估流程。")
+        print(f"Error: Accuracy report directory not found: {current_accuracy_dir}")
+        print("Please ensure the evaluation process has been run for the specified provider and model.")
         return
 
     filenames = [f for f in os.listdir(current_accuracy_dir) if f.endswith(".txt")]
     if not filenames:
-        print(f"信息：在准确率报告目录 '{current_accuracy_dir}' 中未找到 .txt 文件。")
+        print(f"Info: No .txt files found in the accuracy report directory '{current_accuracy_dir}'.")
         return
         
-    print(f"找到 {len(filenames)} 个准确率报告文件。正在解析错误...")
+    print(f"Found {len(filenames)} accuracy report files. Parsing errors...")
 
     for filename in filenames:
         filepath = os.path.join(current_accuracy_dir, filename)
@@ -194,7 +194,7 @@ def analyze_error_distribution_for_provider_model(provider_name, model_name_slug
                     temp_compared_cols = raw_parts
                     break 
         except Exception as e_pre_parse:
-            print(f"警告: 预解析文件 {filename} 以获取 compared_columns 时出错: {e_pre_parse}")
+            print(f"Warning: Error during pre-parsing of file {filename} to get compared_columns: {e_pre_parse}")
             # Continue with temp_compared_cols as empty if pre-parsing failed,
             # parse_error_columns_from_file will handle it.
 
@@ -203,27 +203,27 @@ def analyze_error_distribution_for_provider_model(provider_name, model_name_slug
         report_files_processed_count += 1
 
     if not all_error_columns_aggregated:
-        print("\n在任何报告文件中均未发现错误，或错误无法被解析。")
+        print("\nNo errors were found in any report files, or the errors could not be parsed.")
         return
 
-    print(f"\n从 {report_files_processed_count} 个报告中解析了错误。总共发现 {len(all_error_columns_aggregated)} 个跨字段的错误记录。")
+    print(f"\nParsed errors from {report_files_processed_count} reports. Found a total of {len(all_error_columns_aggregated)} error records across fields.")
 
     error_counts = Counter(all_error_columns_aggregated)
     error_df = pd.DataFrame(error_counts.items(), columns=['Column', 'Error_Frequency'])
     error_df = error_df.sort_values(by='Error_Frequency', ascending=False).reset_index(drop=True)
 
     if error_df.empty:
-        print("错误计数DataFrame为空，无法生成报告。")
+        print("Error count DataFrame is empty, cannot generate report.")
         return
 
-    print(f"\n出现频率最高的 {min(10, len(error_df))} 个错误字段:")
+    print(f"\nTop {min(10, len(error_df))} most frequent error fields:")
     print(error_df.head(10).to_string(index=False))
 
     try:
         error_df.to_csv(error_csv_file, index=False, encoding='utf-8-sig')
-        print(f"\n错误频率计数已保存至: {error_csv_file}")
+        print(f"\nError frequency counts have been saved to: {error_csv_file}")
     except Exception as e:
-        print(f"保存错误计数到CSV文件 '{error_csv_file}' 时出错: {e}")
+        print(f"Error saving error counts to CSV file '{error_csv_file}': {e}")
 
     try:
         num_cols_to_plot = min(30, len(error_df)) 
@@ -232,14 +232,14 @@ def analyze_error_distribution_for_provider_model(provider_name, model_name_slug
         plt.figure(figsize=(15, max(8, num_cols_to_plot * 0.4))) 
 
         sns.barplot(x='Error_Frequency', y='Column', data=plot_df,
-                    palette='plasma', 
-                    orient='h',
-                    hue='Column', 
-                    legend=False) 
+                      palette='plasma', 
+                      orient='h',
+                      hue='Column', 
+                      legend=False) 
         
-        plt.title(f'错误频率最高的 {num_cols_to_plot} 个字段 ({provider_name} / {model_name_slug})', fontsize=16, pad=20)
-        plt.xlabel('报告中该字段出错的次数', fontsize=12, labelpad=10)
-        plt.ylabel('字段名称', fontsize=12, labelpad=10)
+        plt.title(f'Top {num_cols_to_plot} Most Frequent Error Fields ({provider_name} / {model_name_slug})', fontsize=16, pad=20)
+        plt.xlabel('Number of Reports with Error in this Field', fontsize=12, labelpad=10)
+        plt.ylabel('Field Name', fontsize=12, labelpad=10)
         plt.yticks(fontsize=8) 
         plt.xticks(fontsize=8)
 
@@ -253,23 +253,23 @@ def analyze_error_distribution_for_provider_model(provider_name, model_name_slug
         sns.despine()
 
         plt.savefig(error_plot_file, dpi=150, bbox_inches='tight')
-        print(f"错误分布图已保存至: {error_plot_file}")
+        print(f"Error distribution plot saved to: {error_plot_file}")
         plt.close() 
     except Exception as e:
-        print(f"\n生成或保存错误分布图时出错: {e}")
+        print(f"\nError generating or saving the error distribution plot: {e}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="为指定的LLM提供商和模型分析准确率报告中的错误分布。")
-    parser.add_argument("provider_name", help="LLM提供商的名称 (例如: openai, gemini, claude)。")
-    parser.add_argument("model_name_slug", help="LLM模型的标识符 (文件系统安全版本，例如: gpt-4o, gemini-1.5-pro-latest)。")
+    parser = argparse.ArgumentParser(description="Analyze error distribution from accuracy reports for a specified LLM provider and model.")
+    parser.add_argument("provider_name", help="The name of the LLM provider (e.g., openai, gemini, claude).")
+    parser.add_argument("model_name_slug", help="The identifier for the LLM model (filesystem-safe version, e.g., gpt-4o, gemini-1.5-pro-latest).")
     
     args = parser.parse_args()
 
     if args.provider_name not in config.LLM_PROVIDERS:
-        print(f"错误: 未知的提供商 '{args.provider_name}'. 可选项: {list(config.LLM_PROVIDERS.keys())}")
+        print(f"Error: Unknown provider '{args.provider_name}'. Options are: {list(config.LLM_PROVIDERS.keys())}")
         sys.exit(1)
     if not args.model_name_slug.strip():
-        print(f"错误: model_name_slug不能为空。")
+        print(f"Error: model_name_slug cannot be empty.")
         sys.exit(1)
     
     analyze_error_distribution_for_provider_model(args.provider_name, args.model_name_slug)

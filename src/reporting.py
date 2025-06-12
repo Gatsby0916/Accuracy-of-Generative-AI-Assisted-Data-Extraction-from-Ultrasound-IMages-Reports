@@ -17,7 +17,7 @@ except ImportError:
     try:
         from src import config # If running as a module from project root
     except ImportError:
-        print("错误：无法导入 config.py。请确保此脚本与 config.py 的相对路径正确，或者将包含 config.py 的目录添加到 Python 路径中。")
+        print("Error: Could not import config.py. Please ensure the relative path to config.py is correct, or add the directory containing it to the Python path.")
         sys.exit(1)
 
 # --- Matplotlib and Seaborn Configuration ---
@@ -36,15 +36,15 @@ def load_template_fields(json_path):
             template_data = json.load(f)
         return list(template_data.keys())
     except FileNotFoundError:
-        print(f"错误：JSON模板文件未找到: {json_path}")
+        print(f"Error: JSON template file not found: {json_path}")
         return []
     except Exception as e:
-        print(f"加载JSON模板时出错: {e}")
+        print(f"Error loading JSON template: {e}")
         return []
 
 STANDARD_FIELD_NAMES = load_template_fields(config.TEMPLATE_JSON_PATH)
 if not STANDARD_FIELD_NAMES:
-    print("警告：未能从JSON模板加载标准字段名。字段名解析和统计可能不准确。")
+    print("Warning: Failed to load standard field names from JSON template. Field name parsing and statistics may be inaccurate.")
 
 def reconstruct_split_field_names(split_parts, canonical_fields):
     """
@@ -202,7 +202,7 @@ def extract_accuracy_details_from_file(filepath, canonical_field_names):
     """
     report_id_from_file = None
     llm_provider_from_file = None 
-    llm_model_from_file = None    
+    llm_model_from_file = None      
     overall_accuracy = None
     compared_columns_list_reconstructed = []
     error_columns_list_reconstructed = [] 
@@ -223,12 +223,12 @@ def extract_accuracy_details_from_file(filepath, canonical_field_names):
                 llm_provider_from_file = line.split(":", 1)[1].strip()
             elif line.startswith("LLM Model:"): 
                 llm_model_from_file = line.split(":", 1)[1].strip()
-            elif line.startswith("Overall accuracy:") or line.startswith("总体准确率:"): 
+            elif line.startswith("Overall accuracy:") or line.startswith("Overall Accuracy"): 
                 accuracy_str = line.split(":", 1)[1].strip()
                 try:
                     overall_accuracy = float(accuracy_str)
                 except ValueError:
-                    print(f"警告：无法将准确率 '{accuracy_str}' 转换为浮点数 (文件: {os.path.basename(filepath)})")
+                    print(f"Warning: Could not convert accuracy '{accuracy_str}' to float (file: {os.path.basename(filepath)})")
             elif line.startswith("Compared Columns ("): 
                 reading_compared_columns_line = True 
             elif reading_compared_columns_line and line: 
@@ -247,16 +247,16 @@ def extract_accuracy_details_from_file(filepath, canonical_field_names):
         error_columns_list_reconstructed = [col for col in error_columns_list_raw if col in compared_columns_list_reconstructed]
 
     except FileNotFoundError:
-        print(f"警告：准确率文件未找到: {filepath}")
+        print(f"Warning: Accuracy file not found: {filepath}")
         return None, None, None, None, [], [] 
     except Exception as e:
-        print(f"读取或解析文件时出错 {os.path.basename(filepath)}: {e}")
+        print(f"Error reading or parsing file {os.path.basename(filepath)}: {e}")
         return None, None, None, None, [], []
 
     if overall_accuracy is None and report_id_from_file is not None:
-         print(f"警告：在文件 {os.path.basename(filepath)} (报告ID {report_id_from_file}) 中未找到有效的 'Overall accuracy' 行。")
+         print(f"Warning: No valid 'Overall accuracy' line found in file {os.path.basename(filepath)} (Report ID {report_id_from_file}).")
     if not compared_columns_list_reconstructed and report_id_from_file is not None:
-         print(f"警告：在文件 {os.path.basename(filepath)} (报告ID {report_id_from_file}) 中 'Compared Columns' 列表未找到或为空。")
+         print(f"Warning: 'Compared Columns' list not found or empty in file {os.path.basename(filepath)} (Report ID {report_id_from_file}).")
 
     return report_id_from_file, llm_provider_from_file, llm_model_from_file, overall_accuracy, compared_columns_list_reconstructed, error_columns_list_reconstructed
 
@@ -280,11 +280,11 @@ def generate_report(provider_name_filter, model_name_slug_filter):
     try:
         os.makedirs(current_analysis_folder, exist_ok=True)
     except Exception as e:
-        print(f"错误：创建分析目录 '{current_analysis_folder}' 时失败: {e}")
+        print(f"Error: Failed to create analysis directory '{current_analysis_folder}': {e}")
         sys.exit(1)
 
-    print(f"\n--- Generating Report for Provider: '{provider_name_filter}', Model: '{model_name_slug_filter}' ---") # English
-    print(f"Reading accuracy reports from: {current_accuracy_folder}") # English
+    print(f"\n--- Generating Report for Provider: '{provider_name_filter}', Model: '{model_name_slug_filter}' ---")
+    print(f"Reading accuracy reports from: {current_accuracy_folder}")
 
     overall_accuracies = []
     all_report_ids_with_overall_acc = [] 
@@ -296,16 +296,16 @@ def generate_report(provider_name_filter, model_name_slug_filter):
     all_parsed_reports_data = [] 
 
     if not os.path.isdir(current_accuracy_folder):
-        print(f"Error: Accuracy reports directory not found: {current_accuracy_folder}") # English
-        print("Please ensure the evaluation process has been run for the specified provider and model.") # English
+        print(f"Error: Accuracy reports directory not found: {current_accuracy_folder}")
+        print("Please ensure the evaluation process has been run for the specified provider and model.")
         return 
 
     filenames = sorted([f for f in os.listdir(current_accuracy_folder) if f.endswith(".txt")])
     if not filenames:
-        print(f"Info: No .txt files found in the accuracy reports directory '{current_accuracy_folder}'.") # English
+        print(f"Info: No .txt files found in the accuracy reports directory '{current_accuracy_folder}'.")
         return 
 
-    print(f"Found {len(filenames)} .txt files.") # English
+    print(f"Found {len(filenames)} .txt files.")
 
     for filename in filenames:
         filepath = os.path.join(current_accuracy_folder, filename)
@@ -313,10 +313,10 @@ def generate_report(provider_name_filter, model_name_slug_filter):
             extract_accuracy_details_from_file(filepath, STANDARD_FIELD_NAMES)
         
         if provider and provider != provider_name_filter:
-            print(f"Warning: Provider '{provider}' in file {filename} does not match expected '{provider_name_filter}'. Skipping file.") # English
+            print(f"Warning: Provider '{provider}' in file {filename} does not match expected '{provider_name_filter}'. Skipping file.")
             continue
         if model and model != model_name_slug_filter: 
-            print(f"Warning: Model '{model}' in file {filename} does not match expected '{model_name_slug_filter}'. Skipping file.") # English
+            print(f"Warning: Model '{model}' in file {filename} does not match expected '{model_name_slug_filter}'. Skipping file.")
             continue
 
         if report_id:
@@ -324,17 +324,17 @@ def generate_report(provider_name_filter, model_name_slug_filter):
                 "report_id": report_id, 
                 "overall_accuracy": overall_acc,
                 "compared_columns": compared_cols, 
-                "error_columns": error_cols,       
+                "error_columns": error_cols,      
                 "filepath": filepath 
             })
             if overall_acc is not None:
                 overall_accuracies.append(overall_acc)
                 all_report_ids_with_overall_acc.append(report_id) 
         else:
-            print(f"Skipping file {filename} as report ID could not be determined.") # English
+            print(f"Skipping file {filename} as report ID could not be determined.")
     
     if not all_parsed_reports_data:
-        print(f"Error: No valid data could be parsed from any files in '{current_accuracy_folder}'. Cannot generate report.") # English
+        print(f"Error: No valid data could be parsed from any files in '{current_accuracy_folder}'. Cannot generate report.")
         return
 
     accuracies_np = np.array(overall_accuracies) if overall_accuracies else np.array([])
@@ -356,16 +356,16 @@ def generate_report(provider_name_filter, model_name_slug_filter):
         if max_idx < len(all_report_ids_with_overall_acc):
             max_report_id_overall = all_report_ids_with_overall_acc[max_idx]
 
-    print("\n--- Overall Accuracy Statistics ---") # English
-    print(f"Provider: {provider_name_filter}, Model: {model_name_slug_filter}") # English
-    print(f"Number of reports processed with valid overall accuracy: {num_reports_with_acc}") # English
-    print(f"Mean Overall Accuracy   : {average_accuracy:.4f}") # English
-    print(f"Median Overall Accuracy : {median_accuracy:.4f}") # English
-    print(f"Standard Deviation      : {std_dev:.4f}") # English
-    print(f"Minimum Overall Accuracy: {min_accuracy:.4f} (Report: {min_report_id_overall})") # English
-    print(f"Maximum Overall Accuracy: {max_accuracy:.4f} (Report: {max_report_id_overall})") # English
+    print("\n--- Overall Accuracy Statistics ---")
+    print(f"Provider: {provider_name_filter}, Model: {model_name_slug_filter}")
+    print(f"Number of reports processed with valid overall accuracy: {num_reports_with_acc}")
+    print(f"Mean Overall Accuracy   : {average_accuracy:.4f}")
+    print(f"Median Overall Accuracy : {median_accuracy:.4f}")
+    print(f"Standard Deviation      : {std_dev:.4f}")
+    print(f"Minimum Overall Accuracy: {min_accuracy:.4f} (Report: {min_report_id_overall})")
+    print(f"Maximum Overall Accuracy: {max_accuracy:.4f} (Report: {max_report_id_overall})")
 
-    print("\n--- Calculating Field-Level Accuracies ---") # English
+    print("\n--- Calculating Field-Level Accuracies ---")
     for report_data in all_parsed_reports_data:
         if not report_data["compared_columns"]: 
             continue
@@ -425,12 +425,12 @@ def generate_report(provider_name_filter, model_name_slug_filter):
                                     matched_field_for_error_detail = field_name
                                 else: 
                                     if current_col_name_in_diff_detail in field_name:
-                                         matched_field_for_error_detail = field_name
+                                        matched_field_for_error_detail = field_name
 
                             if matched_field_for_error_detail == field_name and true_val_detail is not None and extr_val_detail is not None:
                                 field_error_details[field_name][(true_val_detail, extr_val_detail)] += 1
                 except Exception as e_detail_parse:
-                    print(f"Error parsing error details from file {report_data['filepath']} for field {field_name}: {e_detail_parse}") # English
+                    print(f"Error parsing error details from file {report_data['filepath']} for field {field_name}: {e_detail_parse}")
 
     field_accuracy_data = []
     if field_comparison_counts: 
@@ -448,29 +448,29 @@ def generate_report(provider_name_filter, model_name_slug_filter):
         field_accuracy_df = pd.DataFrame(field_accuracy_data)
         if not field_accuracy_df.empty:
             field_accuracy_df = field_accuracy_df.sort_values(by="Field_Accuracy", ascending=True).reset_index(drop=True) 
-            print("\n--- Field-Level Accuracy Summary (Bottom 10 by Accuracy) ---") # English
+            print("\n--- Field-Level Accuracy Summary (Bottom 10 by Accuracy) ---")
             print(field_accuracy_df.head(10).to_string(index=False))
             if len(field_accuracy_df) > 10:
-                print(f"\n--- Field-Level Accuracy Summary (Top 10 by Accuracy) ---") # English
+                print(f"\n--- Field-Level Accuracy Summary (Top 10 by Accuracy) ---")
                 print(field_accuracy_df.tail(10).sort_values(by="Field_Accuracy", ascending=False).to_string(index=False))
         else:
-            print("Field accuracy DataFrame is empty after processing.") # English
+            print("Field accuracy DataFrame is empty after processing.")
             field_accuracy_df = pd.DataFrame() 
     else:
-        print("No field-level comparison data found to calculate field accuracies (field_comparison_counts is empty).") # English
+        print("No field-level comparison data found to calculate field accuracies (field_comparison_counts is empty).")
         field_accuracy_df = pd.DataFrame() 
 
     try:
         with open(current_summary_filepath, "w", encoding="utf-8") as f:
-            f.write(f"--- Overall Accuracy Summary ({provider_name_filter} / {model_name_slug_filter}) ---\n") # English
-            f.write(f"Number of reports processed with valid overall accuracy: {num_reports_with_acc}\n") # English
-            f.write(f"Mean Overall Accuracy   : {average_accuracy:.4f}\n") # English
-            f.write(f"Median Overall Accuracy : {median_accuracy:.4f}\n") # English
-            f.write(f"Standard Deviation      : {std_dev:.4f}\n") # English
-            f.write(f"Minimum Overall Accuracy: {min_accuracy:.4f} (Report: {min_report_id_overall})\n") # English
-            f.write(f"Maximum Overall Accuracy: {max_accuracy:.4f} (Report: {max_report_id_overall})\n\n") # English
+            f.write(f"--- Overall Accuracy Summary ({provider_name_filter} / {model_name_slug_filter}) ---\n")
+            f.write(f"Number of reports processed with valid overall accuracy: {num_reports_with_acc}\n")
+            f.write(f"Mean Overall Accuracy   : {average_accuracy:.4f}\n")
+            f.write(f"Median Overall Accuracy : {median_accuracy:.4f}\n")
+            f.write(f"Standard Deviation      : {std_dev:.4f}\n")
+            f.write(f"Minimum Overall Accuracy: {min_accuracy:.4f} (Report: {min_report_id_overall})\n")
+            f.write(f"Maximum Overall Accuracy: {max_accuracy:.4f} (Report: {max_report_id_overall})\n\n")
             
-            f.write(f"--- Individual Report Overall Accuracies ({provider_name_filter} / {model_name_slug_filter}) ---\n") # English
+            f.write(f"--- Individual Report Overall Accuracies ({provider_name_filter} / {model_name_slug_filter}) ---\n")
             valid_report_acc_pairs = sorted([
                 (pid, acc) for pid, acc in zip(all_report_ids_with_overall_acc, overall_accuracies)
             ])
@@ -478,25 +478,25 @@ def generate_report(provider_name_filter, model_name_slug_filter):
                 f.write(f"{r_id}: {acc_val:.4f}\n")
 
             if not field_accuracy_df.empty:
-                f.write(f"\n\n--- Field-Level Accuracy Summary ({provider_name_filter} / {model_name_slug_filter}) ---\n") # English
+                f.write(f"\n\n--- Field-Level Accuracy Summary ({provider_name_filter} / {model_name_slug_filter}) ---\n")
                 cols_to_show_in_report = ["Field_Name", "Times_Correct", "Times_Incorrect", "Times_Compared", "Field_Accuracy"]
                 f.write(field_accuracy_df[cols_to_show_in_report].to_string(index=False))
 
-                f.write(f"\n\n--- Top 3 Common Error Details per Field ({provider_name_filter} / {model_name_slug_filter}) ---\n") # English
+                f.write(f"\n\n--- Top 3 Common Error Details per Field ({provider_name_filter} / {model_name_slug_filter}) ---\n")
                 sorted_field_names_for_detail = field_accuracy_df.sort_values(by="Field_Accuracy")["Field_Name"]
                 for field_name_detail in sorted_field_names_for_detail:
                     if field_error_details[field_name_detail]: 
-                        f.write(f"\nField: {field_name_detail}\n") # English
+                        f.write(f"\nField: {field_name_detail}\n")
                         top_3_errors = field_error_details[field_name_detail].most_common(3)
                         for (true_v, extr_v), count_err in top_3_errors:
-                            f.write(f"  - Count: {count_err}, GT Value: '{true_v}', LLM Extracted: '{extr_v}'\n") # English
+                            f.write(f"  - Count: {count_err}, GT Value: '{true_v}', LLM Extracted: '{extr_v}'\n")
             else:
-                f.write(f"\n\n--- Field-Level Accuracy Summary ({provider_name_filter} / {model_name_slug_filter}) ---\n") # English
-                f.write("No field-level accuracy data available.\n") # English
+                f.write(f"\n\n--- Field-Level Accuracy Summary ({provider_name_filter} / {model_name_slug_filter}) ---\n")
+                f.write("No field-level accuracy data available.\n")
 
-        print(f"\nSummary statistics saved to: {current_summary_filepath}") # English
+        print(f"\nSummary statistics saved to: {current_summary_filepath}")
     except Exception as e:
-        print(f"Error saving summary statistics file '{current_summary_filepath}': {e}") # English
+        print(f"Error saving summary statistics file '{current_summary_filepath}': {e}")
 
     # --- Plotting Section with English Labels and Enhancements ---
     plot_title_suffix = f"({provider_name_filter} / {model_name_slug_filter})"
@@ -619,8 +619,8 @@ def generate_report(provider_name_filter, model_name_slug_filter):
             df_for_stacked_plot_subset = df_for_stacked_plot[["Times_Correct", "Times_Incorrect"]].set_index(df_for_stacked_plot["Field_Name"])
 
             ax_stacked = df_for_stacked_plot_subset.plot(kind='barh', stacked=True, 
-                                   figsize=(14, max(10, len(df_for_stacked_plot_subset) * 0.35)),
-                                   color=['#5cb85c', '#d9534f'], width=0.8) # Green for correct, Red for incorrect
+                                      figsize=(14, max(10, len(df_for_stacked_plot_subset) * 0.35)),
+                                      color=['#5cb85c', '#d9534f'], width=0.8) # Green for correct, Red for incorrect
 
             plt.title(f"Field Performance (Top {num_fields_stacked_bar} by Comparison Count) {plot_title_suffix}", fontsize=15, pad=15, weight='bold')
             plt.xlabel("Number of Occurrences", fontsize=12, labelpad=10)
@@ -693,32 +693,32 @@ def generate_report(provider_name_filter, model_name_slug_filter):
         print(f"\nSkipping field accuracy vs. comparison frequency scatter plot {plot_title_suffix}: Insufficient data.")
 
     try:
-        print(f"\n--- Generating Error Distribution Analysis for {provider_name_filter}/{model_name_slug_filter} ---") # English
+        print(f"\n--- Generating Error Distribution Analysis for {provider_name_filter}/{model_name_slug_filter} ---")
         import analyze_error_distribution 
         if hasattr(analyze_error_distribution, 'analyze_error_distribution_for_provider_model'):
-             analyze_error_distribution.analyze_error_distribution_for_provider_model(provider_name_filter, model_name_slug_filter)
-             print("Error distribution analysis (CSV and plot) successfully generated for the current provider/model.") # English
+              analyze_error_distribution.analyze_error_distribution_for_provider_model(provider_name_filter, model_name_slug_filter)
+              print("Error distribution analysis (CSV and plot) successfully generated for the current provider/model.")
         else:
-            print("Warning: 'analyze_error_distribution.py' does not have the expected 'analyze_error_distribution_for_provider_model' function.") # English
-            print("If 'analyze_error_distribution.py' is intended to be run standalone with command-line arguments, please run it separately.") # English
+            print("Warning: 'analyze_error_distribution.py' does not have the expected 'analyze_error_distribution_for_provider_model' function.")
+            print("If 'analyze_error_distribution.py' is intended to be run standalone with command-line arguments, please run it separately.")
     except ImportError:
-        print("Could not import 'analyze_error_distribution'. Please ensure it is in the 'src' directory and accessible.") # English
+        print("Could not import 'analyze_error_distribution'. Please ensure it is in the 'src' directory and accessible.")
     except Exception as e:
-        print(f"An error occurred while running error distribution analysis: {e}") # English
+        print(f"An error occurred while running error distribution analysis: {e}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate summary accuracy reports and plots for a specified LLM provider and model.") # English
-    parser.add_argument("provider_name", help="Name of the LLM provider (e.g., openai, gemini, claude).") # English
-    parser.add_argument("model_name_slug", help="Identifier for the LLM model (filesystem-safe version, e.g., gpt-4o, gemini-1.5-pro-latest).") # English
+    parser = argparse.ArgumentParser(description="Generate summary accuracy reports and plots for a specified LLM provider and model.")
+    parser.add_argument("provider_name", help="Name of the LLM provider (e.g., openai, gemini, claude).")
+    parser.add_argument("model_name_slug", help="Identifier for the LLM model (filesystem-safe version, e.g., gpt-4o, gemini-1.5-pro-latest).")
     
     args = parser.parse_args()
     
     if args.provider_name not in config.LLM_PROVIDERS:
-        print(f"Error: Unknown provider '{args.provider_name}'. Choices are: {list(config.LLM_PROVIDERS.keys())}") # English
+        print(f"Error: Unknown provider '{args.provider_name}'. Choices are: {list(config.LLM_PROVIDERS.keys())}")
         sys.exit(1)
     if not args.model_name_slug.strip():
-        print(f"Error: model_name_slug cannot be empty.") # English
+        print(f"Error: model_name_slug cannot be empty.")
         sys.exit(1)
 
     generate_report(args.provider_name, args.model_name_slug)

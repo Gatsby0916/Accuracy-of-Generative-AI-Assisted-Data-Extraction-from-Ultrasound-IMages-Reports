@@ -25,31 +25,31 @@ def main(report_id, provider_name, model_name_slug):
     excel_folder = config.get_extracted_excel_dir(provider_name, model_name_slug)
     excel_path = os.path.join(excel_folder, f"{report_id_formatted}_extracted_data.xlsx")
 
-    print(f"\n开始转换JSON到Excel，报告 {report_id} (提供商: {provider_name}, 模型: {model_name_slug})")
-    print(f"输入JSON文件路径: {json_path}")
-    print(f"输出Excel文件路径: {excel_path}")
+    print(f"\nStarting JSON to Excel conversion for report {report_id} (Provider: {provider_name}, Model: {model_name_slug})")
+    print(f"Input JSON file path: {json_path}")
+    print(f"Output Excel file path: {excel_path}")
 
     # Ensure the output directory for Excel files exists
     try:
         os.makedirs(excel_folder, exist_ok=True)
     except Exception as e:
-        print(f"错误：创建Excel输出目录 '{excel_folder}' 时失败: {e}")
+        print(f"Error: Failed to create Excel output directory '{excel_folder}': {e}")
         raise IOError(f"Error creating Excel output directory: {e}") # Re-raise to be caught
 
     # --- Read JSON ---
-    print(f"正在读取 JSON 文件: {json_path}")
+    print(f"Reading JSON file: {json_path}")
     if not os.path.exists(json_path):
-        print(f"错误：输入 JSON 文件未找到: {json_path}")
+        print(f"Error: Input JSON file not found: {json_path}")
         raise FileNotFoundError(f"Input JSON file for Excel conversion not found: {json_path}")
 
     try:
         with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
-        print(f"错误：解析 JSON 文件 '{json_path}' 时出错: {e}")
+        print(f"Error: Failed to parse JSON file '{json_path}': {e}")
         raise IOError(f"Error decoding JSON file: {e}")
     except Exception as e:
-        print(f"读取 JSON 文件 '{json_path}' 时发生未知错误: {e}")
+        print(f"An unknown error occurred while reading JSON file '{json_path}': {e}")
         raise IOError(f"Error reading JSON file: {e}")
 
     # --- Convert and Save Excel ---
@@ -57,16 +57,16 @@ def main(report_id, provider_name, model_name_slug):
         # The JSON contains a single object, which needs to be wrapped in a list for DataFrame
         df = pd.DataFrame([data])
         df.to_excel(excel_path, index=False)
-        print(f"JSON 文件已成功转换为 Excel: {excel_path}")
+        print(f"JSON file successfully converted to Excel: {excel_path}")
     except Exception as e:
-        print(f"将 JSON 转换为 Excel 或保存文件 '{excel_path}' 时出错: {e}")
+        print(f"Error converting JSON to Excel or saving file '{excel_path}': {e}")
         raise IOError(f"Error converting JSON to Excel or saving: {e}")
 
 if __name__ == "__main__":
     # This script expects three arguments: report_id, provider_name, model_name_slug
     if len(sys.argv) != 4:
-        print(f"用法: python {os.path.basename(__file__)} <report_id> <provider_name> <model_name_slug>")
-        print("示例: python json_to_excel.py RRI002 openai gpt-4o")
+        print(f"Usage: python {os.path.basename(__file__)} <report_id> <provider_name> <model_name_slug>")
+        print("Example: python json_to_excel.py RRI002 openai gpt-4o")
         sys.exit(1)
 
     report_id_arg = sys.argv[1]
@@ -75,8 +75,8 @@ if __name__ == "__main__":
 
     try:
         main(report_id_arg, provider_name_arg, model_name_slug_arg)
-        print(f"\n报告 {report_id_arg} (提供商: {provider_name_arg}, 模型: {model_name_slug_arg}) 的JSON到Excel转换完成。")
+        print(f"\nJSON to Excel conversion completed for report {report_id_arg} (Provider: {provider_name_arg}, Model: {model_name_slug_arg}).")
     except Exception as e:
         # Error messages from main() should be informative
-        print(f"\n处理报告 {report_id_arg} (提供商: {provider_name_arg}, 模型: {model_name_slug_arg}) 的JSON到Excel转换时发生错误，已中止。")
+        print(f"\nAn error occurred while converting JSON to Excel for report {report_id_arg} (Provider: {provider_name_arg}, Model: {model_name_slug_arg}), aborted.")
         sys.exit(1) # Exit with a non-zero code to indicate failure
