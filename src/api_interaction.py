@@ -5,6 +5,31 @@ import os
 from dotenv import load_dotenv
 import config # Import the config module
 
+# Load per-field metadata once
+try:
+    FIELDS_METADATA = json.load(open(config.METADATA_PATH, 'r', encoding='utf-8'))
+except Exception as e:
+    print(f"Error loading metadata: {e}", file=sys.stderr)
+    sys.exit(1)
+def build_field_rules(metadata):
+    lines = []
+    for field, info in metadata.items():
+        desc = info["description"]
+        if info["type"] == "numeric":
+            lines.append(f"- **{field}** ({info['unit']}): {desc}")
+        elif info["type"] == "date":
+            lines.append(f"- **{field}** (date, {info['format']}): {desc}")
+        else:  # enum
+            allowed = "/".join(info["allowed_values"])
+            line = f"- **{field}**: {desc} Allowed: [{allowed}]."
+            if "mapping" in info:
+                map_pairs = ", ".join(f"{k}->{v}" for k,v in info["mapping"].items())
+                line += f" Map: {map_pairs}."
+            default = info.get("default_value") or info.get("default_missing", "")
+            line += f" Default if missing: {default}."
+            lines.append(line)
+    return "\n".join(lines)
+
 # --- Load Environment Variables (Load once at the start) ---
 # Construct the path to the .env file relative to the project root
 dotenv_path = os.path.join(config.PROJECT_ROOT, '.env')
@@ -36,6 +61,10 @@ def encode_image(image_path):
         return None
 
 # --- Base LLM Client Class ---
+# In src/api_interaction.py
+
+
+# --- MODIFIED: The extract_data method is now more flexible ---
 class BaseLLMClient:
     """Base class for LLM API clients."""
     def __init__(self, api_key, model_id, max_tokens):
@@ -43,14 +72,17 @@ class BaseLLMClient:
         self.model_id = model_id
         self.max_tokens = max_tokens if max_tokens is not None else 4000 # Default if not specified
 
-    def extract_data(self, prompt_text, base64_images):
+    def extract_data(self, prompt_payload):
         """
         Sends a request to the LLM API to extract data.
+        This method now takes a pre-constructed 'prompt_payload'.
         This method must be implemented by subclasses.
         """
         raise NotImplementedError("Subclasses must implement the extract_data method.")
+# In src/api_interaction.py
 
 # --- OpenAI Client ---
+# --- MODIFIED: extract_data now uses a generic payload ---
 class OpenAIClient(BaseLLMClient):
     """Client for interacting with OpenAI API."""
     def __init__(self, api_key, model_id, max_tokens):
@@ -59,38 +91,29 @@ class OpenAIClient(BaseLLMClient):
             from openai import OpenAI as OpenAI_SDK # Alias to avoid conflict
             self.client = OpenAI_SDK(api_key=self.api_key)
         except ImportError:
-            print("Error: openai Python package not installed. Please run 'pip install openai'")
+            print("Error: openai Python package not installed. Please run 'pip install openai'", file=sys.stderr)
             sys.exit(1)
         except Exception as e:
-            print(f"OpenAI client initialization error: {e}")
+            print(f"OpenAI client initialization error: {e}", file=sys.stderr)
             sys.exit(1)
 
-    def extract_data(self, prompt_text, base64_images):
-        content_payload = [{"type": "text", "text": prompt_text}]
-        for img_b64 in base64_images:
-            content_payload.append({
-                "type": "image_url",
-                "image_url": {"url": f"data:image/png;base64,{img_b64}"}
-            })
-        
+    def extract_data(self, prompt_payload):
         print(f"Sending request to OpenAI ({self.model_id})...")
         try:
             response = self.client.chat.completions.create(
                 model=self.model_id,
-                messages=[{"role": "user", "content": content_payload}],
+                messages=[{"role": "user", "content": prompt_payload}],
                 max_tokens=self.max_tokens,
-                response_format={"type": "json_object"} # Specific to some OpenAI models like gpt-4-turbo
+                response_format={"type": "json_object"}
             )
             response_content = response.choices[0].message.content
-            if not isinstance(response_content, str):
-                 print(f"Error: OpenAI response content is not a string. Received: {type(response_content)}")
-                 raise ValueError("OpenAI response content is not a string.")
             return json.loads(response_content)
         except Exception as e:
-            print(f"OpenAI API call or response handling error: {e}")
+            print(f"OpenAI API call or response handling error: {e}", file=sys.stderr)
             raise
 
 # --- Gemini Client ---
+# --- MODIFIED: extract_data now uses a generic payload ---
 class GeminiClient(BaseLLMClient):
     """Client for interacting with Google Gemini API."""
     def __init__(self, api_key, model_id, max_tokens):
@@ -100,17 +123,13 @@ class GeminiClient(BaseLLMClient):
             genai.configure(api_key=self.api_key)
             self.client = genai.GenerativeModel(self.model_id)
         except ImportError:
-            print("Error: google-generativeai Python package not installed. Please run 'pip install google-generativeai'")
+            print("Error: google-generativeai Python package not installed. Please run 'pip install google-generativeai'", file=sys.stderr)
             sys.exit(1)
         except Exception as e:
-            print(f"Gemini client initialization error: {e}")
+            print(f"Gemini client initialization error: {e}", file=sys.stderr)
             sys.exit(1)
 
-    def extract_data(self, prompt_text, base64_images):
-        prompt_parts = [prompt_text]
-        for img_b64 in base64_images:
-            prompt_parts.append({"mime_type": "image/png", "data": img_b64})
-
+    def extract_data(self, prompt_payload):
         print(f"Sending request to Gemini ({self.model_id})...")
         try:
             import google.generativeai as genai 
@@ -119,40 +138,17 @@ class GeminiClient(BaseLLMClient):
                 response_mime_type="application/json" 
             )
             response = self.client.generate_content(
-                prompt_parts,
+                prompt_payload,
                 generation_config=generation_config
             )
-            
-            json_text = None
-            if hasattr(response, 'text') and response.text:
-                json_text = response.text
-            elif response.parts and hasattr(response.parts[0], 'text') and response.parts[0].text:
-                json_text = response.parts[0].text
-            else: 
-                if hasattr(response, 'candidates'):
-                    for candidate in response.candidates:
-                        if candidate.content and candidate.content.parts:
-                            for part in candidate.content.parts:
-                                if hasattr(part, 'text') and part.text and part.text.strip().startswith('{'):
-                                    json_text = part.text
-                                    break
-                            if json_text:
-                                break
-                if not json_text:
-                    print("Error: Could not find valid JSON text in Gemini response.")
-                    print(f"Gemini raw response (partial): {str(response)[:500]}...") 
-                    raise ValueError("Could not extract JSON text from Gemini response.")
-            
-            return json.loads(json_text)
-        except json.JSONDecodeError as json_err:
-            print(f"Gemini JSON decoding error: {json_err}")
-            print(f"Received non-JSON text: {json_text[:500] if 'json_text' in locals() else 'N/A'}...")
-            raise
+            # Simplified response handling for JSON
+            return json.loads(response.text)
         except Exception as e:
-            print(f"Gemini API call or response handling error: {e}")
+            print(f"Gemini API call or response handling error: {e}", file=sys.stderr)
             raise
 
 # --- Claude Client ---
+# --- MODIFIED: extract_data now uses a generic payload ---
 class ClaudeClient(BaseLLMClient):
     """Client for interacting with Anthropic Claude API."""
     def __init__(self, api_key, model_id, max_tokens):
@@ -161,24 +157,13 @@ class ClaudeClient(BaseLLMClient):
             from anthropic import Anthropic
             self.client = Anthropic(api_key=self.api_key)
         except ImportError:
-            print("Error: anthropic Python package not installed. Please run 'pip install anthropic'")
+            print("Error: anthropic Python package not installed. Please run 'pip install anthropic'", file=sys.stderr)
             sys.exit(1)
         except Exception as e:
-            print(f"Claude client initialization error: {e}")
+            print(f"Claude client initialization error: {e}", file=sys.stderr)
             sys.exit(1)
 
-    def extract_data(self, prompt_text, base64_images):
-        messages_content = [{"type": "text", "text": prompt_text}]
-        for img_b64 in base64_images:
-            messages_content.append({
-                "type": "image",
-                "source": {
-                    "type": "base64",
-                    "media_type": "image/png", 
-                    "data": img_b64,
-                },
-            })
-        
+    def extract_data(self, prompt_payload):
         print(f"Sending request to Claude ({self.model_id})...")
         try:
             response = self.client.messages.create(
@@ -187,7 +172,7 @@ class ClaudeClient(BaseLLMClient):
                 messages=[
                     {
                         "role": "user",
-                        "content": messages_content,
+                        "content": prompt_payload,
                     }
                 ]
             )
@@ -200,39 +185,18 @@ class ClaudeClient(BaseLLMClient):
                         break 
 
             if not json_string:
-                print("Error: Could not find valid text content in Claude response.")
                 raise ValueError("Could not extract text from Claude response.")
 
-            json_string_stripped = json_string.strip()
-            if json_string_stripped.startswith("```json"):
-                json_string_stripped = json_string_stripped[len("```json"):].strip()
-                if json_string_stripped.endswith("```"):
-                    json_string_stripped = json_string_stripped[:-len("```")].strip()
-            elif json_string_stripped.startswith("```") and json_string_stripped.endswith("```"):
-                 json_string_stripped = json_string_stripped[len("```"):-len("```")].strip()
+            # Clean up potential markdown code blocks
+            if "```json" in json_string:
+                json_string = json_string.split("```json", 1)[1].rsplit("```", 1)[0].strip()
+            elif json_string.strip().startswith("```") and json_string.strip().endswith("```"):
+                json_string = json_string.strip()[3:-3].strip()
             
-            # --- ADDED DEBUG PRINT HERE ---
-            print(f"--- Claude Raw String to Parse (Full, after stripping markdown) ---")
-            print(json_string_stripped)
-            print(f"--- End Claude Raw String ---")
-            # --- END ADDED DEBUG PRINT ---
-            
-            return json.loads(json_string_stripped)
-        except json.JSONDecodeError as json_err:
-            print(f"Claude JSON decoding error: {json_err}")
-            # The error message from json_err (json_err.pos, json_err.msg) is usually very helpful.
-            # The snippet below is a fallback if the full string was too long to easily inspect in logs.
-            # However, with the full print above, this snippet becomes less critical for direct debugging.
-            error_char_index = json_err.pos 
-            context_window = 150 # Characters before and after the error point
-            start_index = max(0, error_char_index - context_window)
-            end_index = min(len(json_string_stripped), error_char_index + context_window)
-            print(f"Text snippet around the error (position {error_char_index}):\n'{json_string_stripped[start_index:end_index]}'")
-            raise
+            return json.loads(json_string)
         except Exception as e:
-            print(f"Claude API call or response handling error: {e}")
+            print(f"Claude API call or response handling error: {e}", file=sys.stderr)
             raise
-
 # --- Factory Function to Get LLM Client ---
 def get_llm_client(provider_name, model_id):
     """
@@ -262,173 +226,257 @@ def get_llm_client(provider_name, model_id):
     else:
         print(f"Error: Client type '{client_type}' for provider '{provider_name}' is not implemented.")
         sys.exit(1)
+# In src/api_interaction.py
+
+# --- NEW: Function to generate the payload for the API call ---
+def generate_api_payload(data_type, prompt_text, data_content):
+    """
+    Constructs the appropriate payload for the LLM API call based on data type.
+    
+    Args:
+        data_type (str): 'image' or 'text'.
+        prompt_text (str): The instructional part of the prompt.
+        data_content (list or str): A list of base64 images or a single text string.
+
+    Returns:
+        The payload suitable for the LLM client.
+    """
+    # For text-based datasets, the payload is just a combined string.
+    if data_type == 'text':
+        # The prompt for text will include the report's content directly.
+        return f"{prompt_text}\n\n# Report Content to Analyze:\n```text\n{data_content}\n```"
+
+    # For image-based datasets, the payload is a list of text and image parts.
+    # This format is required by modern multi-modal models (OpenAI, Claude 3+).
+    elif data_type == 'image':
+        payload = [{"type": "text", "text": prompt_text}]
+        for img_b64 in data_content:
+            payload.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/png;base64,{img_b64}"}
+            })
+        # Note for Gemini: The Gemini client can handle this list format directly.
+        return payload
+    
+    else:
+        raise ValueError(f"Unsupported data_type for payload generation: {data_type}")
+# --- Generic Prompt Generation ---
+# In src/api_interaction.py
 
 # --- Generic Prompt Generation ---
-def generate_prompt(json_template_str):
+def generate_prompt(json_template_str: str) -> str:
     """
-    Generates the detailed prompt for information extraction.
+    Build a detailed instruction prompt that includes:
+      1) Task objective
+      2) JSON template
+      3) Auto-generated per-field rules
+      4) A minimal example
     """
-    return f"""
-# Task Objective
-Accurately extract information from the provided series of MRI report images and populate it strictly according to the JSON template structure and field instructions provided below. The final output must be a single, complete, and correctly formatted JSON object.
+    # 1) Task header
+    prompt = (
+        "# Task Objective\n"
+        "Accurately extract information from the provided medical report "
+        "and populate it strictly according to the JSON template and field rules below. "
+        "Your output must be a single, valid JSON object—no extra text.\n\n"
+    )
 
-# JSON Output Template
-Please fill the extracted information into the following JSON structure. Ensure all fields are included and follow the filling rules for each field:
-```json
-{json_template_str}
-```
+    # 2) JSON template
+    prompt += (
+        "# JSON Output Template\n"
+        "```json\n"
+        f"{json_template_str.strip()}\n"
+        "```\n\n"
+    )
 
-# Detailed Filling Rules and Examples
+    # 3) Auto-generated Field Rules
+    prompt += "# Field Rules\n"
+    prompt += build_field_rules(FIELDS_METADATA)
+    prompt += "\n\n"
 
-Please read the following rules carefully and refer to the examples for information extraction and formatting:
+    # 4) Minimal example
+    prompt += (
+        "## Example Output\n"
+        "```json\n"
+        "{\n"
+        '  "Uterus size length (mm)": "65.3",\n'
+        '  "Uterus size width (mm)" : "45.0",\n'
+        '  "Uterus size height (mm)": "70.2",\n'
+        '  "Uterus Volume (cc) (((L*W*H)/1000)*0.53)": "31.8",\n'
+        '  "Surgery Performed": "2",\n'
+        '  "Surgery Date": "2",\n'
+        '  "Surgeon": "2"\n'
+        "}\n"
+        "```\n\n"
+    )
 
-**1. Numerical Fields (Measurements, Sizes, Counts):**
-   - Applies to fields containing "(mm)", "(ml)", "thickness", "measurements", "size", "number", "count", "distance", "age", etc., indicating measurement or count.
-   - **Rule:** Find the corresponding **numeric** value from the report images and fill it in. If the value is not explicitly mentioned in the report, or the corresponding structure does not exist, please uniformly fill in `"0"`.
-   - **Example:**
-     ```json
-     "Uterine Size (Body + Cervix - 3 planes in mm) - Length": "80", 
-     "Left ovary measurements - Width (mm)": "19",
-     "Endometrial thickness (Sag plane in mm to nearest mm)": "7",
-     "Number of fibroids": "1", 
-     "Right ovary -  No. follicles between 2 and 9 mm in diameter": "7", 
-     "Abnormal junction zone thickening - Anterior (mm)": "9", 
-     "Distance from anal verge length (mm)": "0" 
-     ```
+    # 5) Final note
+    # ...existing code...
+    prompt += (
+        "**Note:** If a field is not present in the report, use its default missing value "
+        "(e.g., NA or NR). Do not output any explanatory text—only the JSON object.\n"
+        "**Important:**\n"
+        "- For comment fields (e.g., Adnexa comments), if no abnormality, fill '0', do **not** copy phrases like \"Normal bilaterally.\".\n"
+        "- For enum fields, always use the **numeric codes** per mapping—do not output text.\n"
+        "- For date fields, strictly use `YYYY-MM-DD`.\n"
+        "- Your final answer must be **only** the JSON object—no extra words."
+    )
+    # ...existing code...
 
-**2. Boolean/Status Fields (Yes/No, Presence/Absence, Identified/Not Identified, Status):**
-   - Applies to fields containing "identified", "presence of", "status", or those explicitly representing a "Yes/No" judgment.
-   - **Rule:**
-     - If the report image explicitly states the condition is **"Yes", "Present", "Identified", "Positive", "Active", "Complete", "Conventional", "Normal"** or another similar **affirmative** description, please fill in `"1"`.
-     - If the report image explicitly states **"No", "Absent", "Not identified", "Negative", "Inactive"** or another similar **negative** description, or if the item is **not mentioned at all** in the report, please uniformly fill in `"0"`.
-   - **Example:**
-     ```json
-     "Presence of Uterus": "1",        
-     "Fibroids identified": "1",          
-     "Kissing ovaries identified": "0",   
-     "Hematosalpinx identified": "0",     
-     "Presence of Adenomyosis": "1",      
-     "Submucosal fibroids identified": "0", 
-     "Uterovesical region status": "0"    
-     ```
-     * **Special Note:** For 'status' type fields, carefully judge whether the description in the report indicates an affirmative abnormal state (fill "1") or a negative abnormal state/normal (fill "0").
+    return prompt
 
-**3. Specific Category/Code Fields (Position, Location, Type):**
-   - Applies to fields whose meaning is a preset category or code, such as "Left ovary position", "Uteroscaral ligament nodules - location", "Pouch of Douglas obliteration status".
-   - **Rule:** Find and extract the **exact matching** category code (usually a number `1`, `2`, `3`, etc.) or specific categorical term (like `Left`, `Right`, `Both`, `Partial`, `Complete`) from the report images. If it's not explicitly mentioned in the report, please fill in `"0"`.
-   - **Example:**
-     ```json
-     "Left ovary position": "1",      
-     "Right ovary position": "3",     
-     "Uteroscaral ligament nodules - location": "0", 
-     "Pouch of Douglas obliteration status": "2" 
-     ```
-     * **Important:** For situations requiring mapping (e.g., Complete -> "2"), strictly follow the implicit or explicit mapping rules. If the rules are unclear, prioritize extracting the original text. However, based on our previous agreement, use the number if it can be mapped to a number. If the original text is text with no numeric mapping, use the text; if not mentioned, use "0".
-
-**4. Descriptive Text Fields (Comments, Description, Features):**
-   - Applies to fields containing "comments", "description", "features (free text)", "Other salient findings", etc., which require a textual description.
-   - **Rule:** **Accurately copy** the relevant original description from the report images. Pay attention to preserving the original text, including medical terminology and possible abbreviations. If no corresponding descriptive information is found in the report, set the field value to an **empty string `""`**.
-   - **Example:**
-     ```json
-     "Fibroid description": "9mm intramural anterior fundus", 
-     "Adnexa comments": "Small left paratubal cyst noted.", 
-     "Uterine anatomy comments": "", 
-     "Other salient findings (free text)": "Incidental finding of small renal cyst on right kidney upper pole seen on edge of image.",
-     "Rectum and Colon lesion features (free text)": "" 
-     ```
-
-**General Instructions:**
-
-* **Accuracy:** Extract information as accurately as possible, especially numerical values and key terms. Pay attention to any circles, marks, or arrows in the report.
-* **Completeness:** Ensure the JSON output includes **all fields** from the template, and assign a value to each field according to the rules above (`"0"`, `"1"`, a numeric string, an original description string, or `""`).
-* **Source:** All extracted information must be **directly sourced** from the provided report images. Do not make any external inferences or assumptions.
-* **Format:** The output must be a **single, complete, and strictly correctly formatted** JSON object. Please ensure your response strictly adheres to the JSON format and only contains the JSON object itself, without any additional text, explanations, or Markdown tags.
-
-Please begin extraction.
-"""
 
 # --- Main Function ---
-def main(report_id, provider_name, model_id): 
+# In src/api_interaction.py
+
+# --- Main Function ---
+def main(dataset_name, report_id, provider_name, model_id):
     """
     Main processing logic for a single report using a specific LLM.
     """
-    report_id_formatted = report_id[:3] + " " + report_id[3:] 
+    print(f"\n--- Starting API Interaction for Report: {report_id}, Dataset: {dataset_name} ---")
+    
+    # 1. Get all necessary configurations from config.py
     model_name_slug = model_id.replace('/', '_').replace(':', '_')
-
-    image_folder = config.PROCESSED_IMAGES_DIR      
-    template_path = config.TEMPLATE_JSON_PATH      
-    output_folder = config.get_extracted_json_raw_dir(provider_name, model_name_slug)
-
     try:
-        os.makedirs(output_folder, exist_ok=True)
-    except Exception as e:
-        print(f"Error: Could not create output directory '{output_folder}' for {provider_name}/{model_name_slug}: {e}")
-        raise 
+        dataset_config = config.DATASET_CONFIGS[dataset_name]
+        data_type = dataset_config["data_type"]
+        template_path = dataset_config["template_json"]
+        processed_data_dir = config.get_processed_data_dir(dataset_name)
+        output_dir = config.get_extracted_json_raw_dir(provider_name, model_name_slug, dataset_name)
+        os.makedirs(output_dir, exist_ok=True)
+    except KeyError:
+        print(f"FATAL: Dataset '{dataset_name}' not found in config.DATASET_CONFIGS.", file=sys.stderr)
+        sys.exit(1)
 
-    image_paths = [
-        os.path.join(image_folder, f"{report_id_formatted}_page_{i}.png")
-        for i in range(config.PAGES_PER_REPORT)
-    ]
-    base64_images = []
-    for img_path in image_paths:
-        encoded_image = encode_image(img_path)
-        if encoded_image:
-            base64_images.append(encoded_image)
-
-    if not base64_images:
-        print(f"Error: No valid image files found or could be encoded for report {report_id_formatted}.")
-        raise FileNotFoundError(f"No valid images found or could be encoded for report {report_id_formatted} in {image_folder}")
+    # 2. Load the processed data content (either a text string or a list of images)
+    data_content = None
+    if data_type == 'text':
+        text_file_path = os.path.join(processed_data_dir, f"{report_id}.txt")
+        try:
+            with open(text_file_path, 'r', encoding='utf-8') as f:
+                data_content = f.read()
+            print(f"Successfully loaded text content from: {text_file_path}")
+        except FileNotFoundError:
+            print(f"FATAL: Processed text file not found: {text_file_path}. Please check the 'preprocess.py' step.", file=sys.stderr)
+            sys.exit(1)
+            
+    elif data_type == 'image':
+        image_files = [f for f in os.listdir(processed_data_dir) if f.startswith(f"{report_id}_page_") and f.endswith(".png")]
+        if not image_files:
+            print(f"FATAL: No processed images found for report '{report_id}' in {processed_data_dir}. Please check the 'preprocess.py' step.", file=sys.stderr)
+            sys.exit(1)
         
-    print(f"Loaded {len(base64_images)} image files for report {report_id_formatted} for processing.")
+        base64_images = [encode_image(os.path.join(processed_data_dir, img_file)) for img_file in sorted(image_files)]
+        data_content = [img for img in base64_images if img] # Filter out any None values if encoding failed
+        print(f"Successfully loaded and encoded {len(data_content)} images for report {report_id}")
 
+    if not data_content:
+        print(f"FATAL: Failed to load any data content for report {report_id}.", file=sys.stderr)
+        sys.exit(1)
+
+    # --- THIS IS THE CORRECTED PART ---
+    # All logic is now inside a single, robust try...except block.
     try:
+        # 3. Generate the instructional prompt and the final API payload
+        print("Generating prompt and API payload...")
         with open(template_path, "r", encoding="utf-8") as f:
-            json_template = json.load(f)
-    except FileNotFoundError:
-        print(f"Error: JSON template file not found: {template_path}")
-        raise 
-    except json.JSONDecodeError as e:
-        print(f"Error: Failed to parse JSON template file {template_path}: {e}")
-        raise 
+            json_template_str = f.read()
         
-    json_template_str = json.dumps(json_template, indent=config.JSON_INDENT, ensure_ascii=config.ENSURE_ASCII)
-    prompt = generate_prompt(json_template_str)
-    llm_client = get_llm_client(provider_name, model_id)
-    output_file = os.path.join(output_folder, f"{report_id_formatted}_extracted_data.json")
+        prompt_instructions = generate_prompt(json_template_str)
+        api_payload = generate_api_payload(data_type, prompt_instructions, data_content)
 
-    try:
-        print(f"Sending request to {provider_name.capitalize()} API ({model_id}) for report: {report_id_formatted}...")
-        extracted_data = llm_client.extract_data(prompt, base64_images)
+        # 4. Initialize client and call the API
+        llm_client = get_llm_client(provider_name, model_id)
+        extracted_data = llm_client.extract_data(api_payload)
         
-        print(f"{provider_name.capitalize()} API request successful. Processing response...")
-        if not isinstance(extracted_data, dict): 
-            print(f"Error: Data returned from {provider_name.capitalize()} is not a valid JSON object (dictionary). Received type: {type(extracted_data)}")
-            raise ValueError(f"LLM ({provider_name}/{model_id}) did not return a valid JSON object (dictionary).")
+        # 5. Validate and save the output
+        if not isinstance(extracted_data, dict):
+            raise ValueError(f"LLM did not return a valid JSON object (dictionary).")
 
-        extracted_data["Report ID"] = report_id_formatted 
-
+        extracted_data["Report ID"] = report_id # Add the report ID for tracking
+        
+        output_file = os.path.join(output_dir, f"{report_id}_extracted_data.json")
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(extracted_data, f, indent=config.JSON_INDENT, ensure_ascii=config.ENSURE_ASCII)
-        print(f"Extracted information has been successfully saved to: {output_file}")
+        print(f"Successfully saved extracted data to: {output_file}")
 
     except Exception as e:
-        print(f"A critical error occurred while calling the {provider_name.capitalize()} API ({model_id}) or processing its response: {e}")
-        raise 
+        # This block will now catch ANY error from steps 3, 4, or 5
+        print(f"A critical error occurred in the API interaction step: {e}", file=sys.stderr)
+        raise # Re-raise the exception to fail the step in main.py
 
 # --- Script Execution Block ---
+# --- MODIFIED: Accepts new arguments from main.py ---
 if __name__ == "__main__":
-    if len(sys.argv) != 4:
-        print(f"Usage: python {os.path.basename(__file__)} <report_id> <provider_name> <model_id>")
-        print("Example: python api_interaction.py RRI002 openai gpt-4o")
+    # This script is designed to be called by main.py, so we expect arguments.
+    if len(sys.argv) != 5:
+        print(f"Usage: python {os.path.basename(__file__)} <dataset_name> <report_id> <provider_name> <model_id>", file=sys.stderr)
         sys.exit(1)
     
-    report_id_arg = sys.argv[1]
-    provider_name_arg = sys.argv[2]
-    model_id_arg = sys.argv[3] 
+    dataset_name_arg = sys.argv[1]
+    report_id_arg = sys.argv[2]
+    provider_name_arg = sys.argv[3]
+    model_id_arg = sys.argv[4]
     
     try:
-        main(report_id_arg, provider_name_arg, model_id_arg)
-        print(f"\nAPI interaction for report {report_id_arg} ({provider_name_arg.capitalize()}/{model_id_arg}) completed.")
-    except Exception as e:
-        print(f"\nAn error occurred while processing report {report_id_arg} ({provider_name_arg.capitalize()}/{model_id_arg}). API interaction aborted.")
+        main(dataset_name_arg, report_id_arg, provider_name_arg, model_id_arg)
+        print(f"\nAPI interaction for report {report_id_arg} completed successfully.")
+    except Exception:
+        # The detailed error is printed within the functions.
+        print(f"\nAPI interaction for report {report_id_arg} FAILED.", file=sys.stderr)
         sys.exit(1)
+
+# **1. Numerical Fields (Measurements, Sizes, Counts):**
+#    - Applies to fields containing "(mm)", "(ml)", "thickness", "measurements", "size", "number", "count", "distance", "age", etc., indicating measurement or count.
+#    - **Rule:** Find the corresponding **numeric** value from the report images and fill it in. If the value is not explicitly mentioned in the report, or the corresponding structure does not exist, please uniformly fill in `"0"`.
+#    - **Example:**
+#      ```json
+#      "Uterine Size (Body + Cervix - 3 planes in mm) - Length": "80", 
+#      "Left ovary measurements - Width (mm)": "19",
+#      "Endometrial thickness (Sag plane in mm to nearest mm)": "7",
+#      "Number of fibroids": "1", 
+#      "Right ovary -  No. follicles between 2 and 9 mm in diameter": "7", 
+#      "Abnormal junction zone thickening - Anterior (mm)": "9", 
+#      "Distance from anal verge length (mm)": "0" 
+#      ```
+
+# **2. Boolean/Status Fields (Yes/No, Presence/Absence, Identified/Not Identified, Status):**
+#    - Applies to fields containing "identified", "presence of", "status", or those explicitly representing a "Yes/No" judgment.
+#    - **Rule:**
+#      - If the report image explicitly states the condition is **"Yes", "Present", "Identified", "Positive", "Active", "Complete", "Conventional", "Normal"** or another similar **affirmative** description, please fill in `"1"`.
+#      - If the report image explicitly states **"No", "Absent", "Not identified", "Negative", "Inactive"** or another similar **negative** description, or if the item is **not mentioned at all** in the report, please uniformly fill in `"0"`.
+#    - **Example:**
+#      ```json
+#      "Presence of Uterus": "1",        
+#      "Fibroids identified": "1",          
+#      "Kissing ovaries identified": "0",   
+#      "Hematosalpinx identified": "0",     
+#      "Presence of Adenomyosis": "1",      
+#      "Submucosal fibroids identified": "0", 
+#      "Uterovesical region status": "0"    
+#      ```
+#      * **Special Note:** For 'status' type fields, carefully judge whether the description in the report indicates an affirmative abnormal state (fill "1") or a negative abnormal state/normal (fill "0").
+
+# **3. Specific Category/Code Fields (Position, Location, Type):**
+#    - Applies to fields whose meaning is a preset category or code, such as "Left ovary position", "Uteroscaral ligament nodules - location", "Pouch of Douglas obliteration status".
+#    - **Rule:** Find and extract the **exact matching** category code (usually a number `1`, `2`, `3`, etc.) or specific categorical term (like `Left`, `Right`, `Both`, `Partial`, `Complete`) from the report images. If it's not explicitly mentioned in the report, please fill in `"0"`.
+#    - **Example:**
+#      ```json
+#      "Left ovary position": "1",      
+#      "Right ovary position": "3",     
+#      "Uteroscaral ligament nodules - location": "0", 
+#      "Pouch of Douglas obliteration status": "2" 
+#      ```
+#      * **Important:** For situations requiring mapping (e.g., Complete -> "2"), strictly follow the implicit or explicit mapping rules. If the rules are unclear, prioritize extracting the original text. However, based on our previous agreement, use the number if it can be mapped to a number. If the original text is text with no numeric mapping, use the text; if not mentioned, use "0".
+
+# **4. Descriptive Text Fields (Comments, Description, Features):**
+#    - Applies to fields containing "comments", "description", "features (free text)", "Other salient findings", etc., which require a textual description.
+#    - **Rule:** **Accurately copy** the relevant original description from the report images. Pay attention to preserving the original text, including medical terminology and possible abbreviations. If no corresponding descriptive information is found in the report, set the field value to an **empty string `""`**.
+#    - **Example:**
+#      ```json
+#      "Fibroid description": "9mm intramural anterior fundus", 
+#      "Adnexa comments": "Small left paratubal cyst noted.", 
+#      "Uterine anatomy comments": "", 
+#      "Other salient findings (free text)": "Incidental finding of small renal cyst on right kidney upper pole seen on edge of image.",
+#      "Rectum and Colon lesion features (free text)": "" 
+#      ```
