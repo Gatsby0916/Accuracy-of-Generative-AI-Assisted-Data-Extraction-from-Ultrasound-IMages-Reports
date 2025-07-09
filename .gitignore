@@ -111,18 +111,10 @@ venv.bak/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-
+AI-Powered-MRI-Report-Data-Extraction-Accuracy-Evaluation.pptx
 # --- Project Specific Ignores ---
-
-# Ignore ALL content within the 'data' directory...
+llm_timing_log.csv
 data/*
-
-# ... BUT explicitly DO NOT ignore the 'templates' subdirectory within 'data'.
-# This allows data/templates/json_template.json to be tracked by Git.
-# If your template file IS sensitive, remove the line below and just ignore data/
-!data/templates/
-# If you want to ignore specific files inside templates, add them below:
-# data/templates/some_other_sensitive_template.json
 
 # Ignore the contents of the results directory initially
 results/*
