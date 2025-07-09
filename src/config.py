@@ -31,6 +31,13 @@ DATASET_CONFIGS = {
         "ground_truth_xlsx": os.path.join(GROUND_TRUTH_DIR, "filtered_output.xlsx"),
         "template_json": os.path.join(TEMPLATES_DIR, "json_template_Benson.json")
     },
+    "benson_text": {
+        "display_name": "Benson Text-Based Reports",
+        "data_type": "text",  # text_based
+        "pdf_dir": os.path.join(RAW_REPORTS_DIR, "IMAGENDO ID REPORTS"),
+        "ground_truth_xlsx": os.path.join(GROUND_TRUTH_DIR, "filtered_output.xlsx"),  
+        "template_json": os.path.join(TEMPLATES_DIR, "json_template_Benson.json")
+    },
     "sugo": {
         "display_name": "Sugo Dataset",
         "data_type": "text",   # Used by the pipeline to select processing logic
@@ -94,18 +101,17 @@ def get_provider_model_dataset_dir(provider_name, model_name_slug, dataset_name)
 
 def get_processed_data_dir(dataset_name):
     """
-    Directory for pre-processed data (images or text).
-    This path is now general and not specific to a provider/model run.
+    Directory for pre-processed data (images or text), separated by dataset.
     """
     data_type = DATASET_CONFIGS[dataset_name]["data_type"]
-    
     if data_type == "image":
-        # All processed images go into one shared directory
-        return os.path.join(RESULTS_DIR, "processed_images")
+        base = os.path.join(RESULTS_DIR, "processed_images")
     elif data_type == "text":
-        # All processed texts go into one shared directory
-        return os.path.join(RESULTS_DIR, "processed_text")
-    return None
+        base = os.path.join(RESULTS_DIR, "processed_text")
+    else:
+        return None
+    # Put each dataset into its own subfolder
+    return os.path.join(base, dataset_name)
 
 # Add a line break before the next function
 def get_extracted_data_dir(provider_name, model_name_slug, dataset_name):
@@ -133,9 +139,19 @@ def get_extracted_excel_dir(provider_name, model_name_slug, dataset_name):
     return os.path.join(get_extracted_data_dir(provider_name, model_name_slug, dataset_name), "excel")
 
 def get_accuracy_reports_dir(provider_name, model_name_slug, dataset_name):
-    """Directory for accuracy reports."""
-    return os.path.join(get_overall_analysis_dir(provider_name, model_name_slug, dataset_name), "accuracy_reports")
+    """Directory for accuracy reports, with fallback to dataset-root."""
+    primary = os.path.join(
+        get_overall_analysis_dir(provider_name, model_name_slug, dataset_name),
+        "accuracy_reports"
+    )
+    if os.path.isdir(primary) and os.listdir(primary):
+        return primary
 
+    fallback = os.path.join(
+        get_provider_model_dataset_dir(provider_name, model_name_slug, dataset_name),
+        "accuracy_reports"
+    )
+    return fallback
 
 # --- Paths for provider/model/dataset specific summary files ---
 

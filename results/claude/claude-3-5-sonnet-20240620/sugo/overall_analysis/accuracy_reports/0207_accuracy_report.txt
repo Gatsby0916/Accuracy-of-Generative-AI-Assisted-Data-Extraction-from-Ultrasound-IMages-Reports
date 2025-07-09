@@ -1,0 +1,27 @@
+Evaluation Report for: 0207
+Accuracy: 0.8811 (163/185)
+
+--- Differences ---
+                                         Column True Value Extracted Value
+                                    Adenomyosis          1            <NA>
+                 Adenomyosis_ Indirect Features          1            <NA>
+                                   Date of Scan 2023-03-24            <NA>
+                            Endometrial Lesions          1            <NA>
+      If yes_ Endometrial Lesion present_other   Istmocele            <NA>
+        If yes_ Endometrial Lesion present_type          4            <NA>
+   If yes_Right ovarian lesion/ cyst size (mm):   48x33x37            <NA>
+         If yes_Right ovarian lesion/ cyst type          3            <NA>
+                                    LO_Mobility          1            <NA>
+                             Left ovary present          1            <NA>
+                  Pouch of Douglas Obliteration          1            <NA>
+                                    RO_Mobility          1            <NA>
+           RO_volume (cc) (((L*W*H)/1000)*0.53)        5.6            61.5
+Right ovarian lesions/ cyts (NOT endometriomas)          1            <NA>
+                            Right ovary present          1            <NA>
+                                      Scan Date 2023-03-24            <NA>
+                                    Sonographer M.Leonardi            <NA>
+                                Uterine Anatomy          1            <NA>
+                                    Uterine Lie          1            <NA>
+                                Uterus Mobility          1            <NA>
+       Uterus Volume (cc) (((L*W*H)/1000)*0.53)      107.1           108.0
+                                Uterus presence          1            <NA>

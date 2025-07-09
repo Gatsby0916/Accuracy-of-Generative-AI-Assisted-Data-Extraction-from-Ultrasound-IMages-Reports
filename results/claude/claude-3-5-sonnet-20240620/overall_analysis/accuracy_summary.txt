@@ -1,0 +1,251 @@
+--- Overall Accuracy Summary (claude / claude-3-5-sonnet-20240620) ---
+Number of reports processed with valid overall accuracy: 191
+Mean Overall Accuracy   : 0.8344
+Median Overall Accuracy : 0.8667
+Standard Deviation      : 0.0918
+Minimum Overall Accuracy: 0.4444 (Report: RRI 109)
+Maximum Overall Accuracy: 0.9556 (Report: RRI 029)
+
+--- Individual Report Overall Accuracies (claude / claude-3-5-sonnet-20240620) ---
+RRI 002: 0.9111
+RRI 003: 0.8222
+RRI 004: 0.8000
+RRI 005: 0.8222
+RRI 006: 0.8222
+RRI 007: 0.9111
+RRI 008: 0.8889
+RRI 009: 0.8444
+RRI 010: 0.8667
+RRI 012: 0.8444
+RRI 013: 0.8222
+RRI 014: 0.8889
+RRI 016: 0.8667
+RRI 017: 0.8222
+RRI 018: 0.9111
+RRI 020: 0.9111
+RRI 021: 0.8889
+RRI 022: 0.8000
+RRI 023: 0.9111
+RRI 024: 0.8000
+RRI 025: 0.9111
+RRI 026: 0.9333
+RRI 027: 0.8889
+RRI 028: 0.8667
+RRI 029: 0.9556
+RRI 030: 0.8889
+RRI 031: 0.8444
+RRI 032: 0.9111
+RRI 033: 0.9111
+RRI 034: 0.8000
+RRI 035: 0.8889
+RRI 036: 0.9556
+RRI 037: 0.7556
+RRI 038: 0.8667
+RRI 039: 0.7556
+RRI 040: 0.7778
+RRI 041: 0.6667
+RRI 042: 0.6667
+RRI 043: 0.8222
+RRI 044: 0.9111
+RRI 045: 0.8667
+RRI 046: 0.8444
+RRI 047: 0.8222
+RRI 048: 0.9111
+RRI 049: 0.8667
+RRI 050: 0.8222
+RRI 051: 0.9333
+RRI 052: 0.8889
+RRI 053: 0.8889
+RRI 054: 0.9333
+RRI 055: 0.8667
+RRI 056: 0.8444
+RRI 057: 0.8667
+RRI 058: 0.7556
+RRI 059: 0.8222
+RRI 060: 0.8667
+RRI 061: 0.8222
+RRI 062: 0.8667
+RRI 063: 0.8889
+RRI 064: 0.8667
+RRI 065: 0.9111
+RRI 067: 0.8889
+RRI 069: 0.8889
+RRI 070: 0.7111
+RRI 071: 0.8667
+RRI 072: 0.7556
+RRI 073: 0.8889
+RRI 074: 0.8444
+RRI 075: 0.6889
+RRI 077: 0.8000
+RRI 078: 0.8444
+RRI 079: 0.8667
+RRI 080: 0.8222
+RRI 081: 0.8444
+RRI 082: 0.9333
+RRI 083: 0.8889
+RRI 084: 0.8889
+RRI 085: 0.8889
+RRI 086: 0.9333
+RRI 087: 0.9333
+RRI 088: 0.8667
+RRI 089: 0.9111
+RRI 090: 0.9333
+RRI 091: 0.8222
+RRI 092: 0.8444
+RRI 093: 0.8889
+RRI 095: 0.8667
+RRI 096: 0.8889
+RRI 099: 0.8000
+RRI 101: 0.8444
+RRI 103: 0.7778
+RRI 104: 0.6889
+RRI 105: 0.5333
+RRI 106: 0.5111
+RRI 107: 0.6222
+RRI 109: 0.4444
+RRI 110: 0.6667
+RRI 111: 0.7111
+RRI 112: 0.8000
+RRI 113: 0.9111
+RRI 114: 0.9333
+RRI 115: 0.8000
+RRI 116: 0.8889
+RRI 117: 0.8000
+RRI 118: 0.8889
+RRI 120: 0.7333
+RRI 121: 0.9333
+RRI 122: 0.7778
+RRI 123: 0.7333
+RRI 124: 0.9111
+RRI 125: 0.7556
+RRI 126: 0.7778
+RRI 127: 0.8889
+RRI 128: 0.8444
+RRI 129: 0.8667
+RRI 130: 0.8444
+RRI 131: 0.7333
+RRI 132: 0.7778
+RRI 133: 0.9111
+RRI 134: 0.8667
+RRI 135: 0.9111
+RRI 136: 0.8444
+RRI 137: 0.9111
+RRI 139: 0.9111
+RRI 141: 0.9111
+RRI 142: 0.9111
+RRI 143: 0.8667
+RRI 144: 0.9111
+RRI 147: 0.8667
+RRI 149: 0.9333
+RRI 150: 0.5778
+RRI 151: 0.8889
+RRI 154: 0.8000
+RRI 155: 0.8222
+RRI 156: 0.7556
+RRI 158: 0.8667
+RRI 162: 0.7778
+RRI 163: 0.8889
+RRI 165: 0.8222
+RRI 170: 0.8444
+RRI 181: 0.8222
+RRI 218: 0.7333
+RRI 289: 0.8444
+RRI 293: 0.8222
+RRI 301: 0.8000
+RRI 334: 0.7778
+RRI 389: 0.8000
+RRI 390: 0.5778
+RRI 392: 0.5111
+RRI 396: 0.7556
+RRI 397: 0.5333
+RRI 398: 0.5333
+RRI 399: 0.7333
+RRI 402: 0.6667
+RRI 403: 0.8444
+RRI 404: 0.7111
+RRI 407: 0.8222
+RRI 410: 0.8889
+RRI 414: 0.8000
+RRI 415: 0.8000
+RRI 417: 0.9111
+RRI 421: 0.8444
+RRI 422: 0.9111
+RRI 424: 0.8444
+RRI 425: 0.8000
+RRI 426: 0.8444
+RRI 428: 0.7333
+RRI 429: 0.8667
+RRI 432: 0.8889
+RRI 438: 0.8222
+RRI 439: 0.8444
+RRI 445: 0.9333
+RRI 448: 0.8889
+RRI 449: 0.9333
+RRI 450: 0.8667
+RRI 451: 0.9111
+RRI 453: 0.8889
+RRI 454: 0.9111
+RRI 455: 0.8667
+RRI 483: 0.8667
+RRI 484: 0.9111
+RRI 485: 0.9333
+RRI 491: 0.8889
+RRI 494: 0.8444
+RRI 537: 0.8889
+RRI 561: 0.8222
+RRI 568: 0.9556
+RRI 575: 0.8222
+RRI 577: 0.8444
+RRI 582: 0.8667
+RRI 713: 0.9556
+
+
+--- Field-Level Accuracy Summary (claude / claude-3-5-sonnet-20240620) ---
+                                                                             Field_Name  Times_Correct  Times_Incorrect  Times_Compared  Field_Accuracy
+                                          Right ovary volume (cc) (((L*W*H)/1000)*0.53)             27              164             191        0.141361
+                                           Left ovary volume (cc) (((L*W*H)/1000)*0.53)             33              158             191        0.172775
+                                                   Pouch of Douglas obliteration status             65              126             191        0.340314
+                                           Abnormal junction zone thickening identified            101               90             191        0.528796
+                                                                Presence of Adenomyosis            116               75             191        0.607330
+                                                         Endometrial lesions identified            130               61             191        0.680628
+                              Left ovary - No. follicles between 2 and 9 mm in diametre            147               44             191        0.769634
+                            Right ovary -  No. follicles between 2 and 9 mm in diameter            151               40             191        0.790576
+                                 Uterine Size (Body + Cervix - 3 planes in mm) - Length            152               39             191        0.795812
+                                                                    Fibroids identified            152               39             191        0.795812
+                                                  Left ovary measurements - Length (mm)            157               34             191        0.821990
+                                                 Right ovary measurements - Length (mm)            157               34             191        0.821990
+                                     Uteroscaral ligament nodules/thickening identified            161               30             191        0.842932
+                                               Right ovary dominant follicle identified            162               29             191        0.848168
+                                                  Right ovary measurements - Width (mm)            165               26             191        0.863874
+                                  Uterine Size (Body + Cervix - 3 planes in mm) - Width            166               25             191        0.869110
+                                                 Right ovary measurements - Height (mm)            167               24             191        0.874346
+                                                   Left ovary measurements - Width (mm)            167               24             191        0.874346
+                                                      Uterine Lie Position - Anteverted            167               24             191        0.874346
+                                                         Submucosal fibroids identified            167               24             191        0.874346
+                                                                        Uterine anatomy            168               23             191        0.879581
+                                                  Left ovary measurements - Height (mm)            169               22             191        0.884817
+                                                           Uterus Adenomyoma identified            171               20             191        0.895288
+                                                    Left ovarian endometrioma size (mm)            171               20             191        0.895288
+                                                        Rectovaginal nodules identified            173               18             191        0.905759
+                                                      Left ovary - No. follicles > 9 mm            174               17             191        0.910995
+                                                                     Number of fibroids            174               17             191        0.910995
+                                              Left ovary - Dominant follicle identified            175               16             191        0.916230
+                                                   Right ovarian endometrioma size (mm)            176               15             191        0.921466
+                                                                    Left ovary position            177               14             191        0.926702
+                                                       Right ovary No. follicles > 9 mm            177               14             191        0.926702
+                                 Uterine Size (Body + Cervix - 3 planes in mm) - Height            177               14             191        0.926702
+                                                           Number of endometrial polyps            181               10             191        0.947644
+                                  Endometrial thickness (Sag plane in mm to nearest mm)            183                8             191        0.958115
+                                  Bowel Deep Infiltrating Endometrosis (DIE) identified            184                7             191        0.963351
+                                                   Left ovarian endometrioma identified            185                6             191        0.968586
+Left ovarian endometrioma T2 shading identified (Intermediate/low homogenous T2 signal)            186                5             191        0.973822
+                                                  Right ovarian endometrioma identified            187                4             191        0.979058
+                                                             Kissing ovaries identified            187                4             191        0.979058
+                                                                Hydrosalpinx identified            190                1             191        0.994764
+                                                     Presence of urinary bladder nodule            190                1             191        0.994764
+                                                                              Report ID            191                0             191        1.000000
+                                                                Presence of  Left ovary            191                0             191        1.000000
+                                                                Presence of right ovary            191                0             191        1.000000
+                                                           Presence of ureteric nodules            191                0             191        1.000000
+
+--- Top 3 Common Error Details per Field (claude / claude-3-5-sonnet-20240620) ---

@@ -1,0 +1,21 @@
+Report ID: RRI 561
+LLM Provider: claude
+LLM Model: claude-3-5-sonnet-20240620
+Compared Columns (45):
+Abnormal junction zone thickening identified, Bowel Deep Infiltrating Endometrosis (DIE) identified, Endometrial lesions identified, Endometrial thickness (Sag plane in mm to nearest mm), Fibroids identified, Hydrosalpinx identified, Kissing ovaries identified, Left ovarian endometrioma T2 shading identified (Intermediate/low homogenous T2 signal), Left ovarian endometrioma identified, Left ovarian endometrioma size (mm) , Left ovary - Dominant follicle identified, Left ovary - No. follicles > 9 mm , Left ovary - No. follicles between 2 and 9 mm in diametre, Left ovary measurements - Height (mm), Left ovary measurements - Length (mm), Left ovary measurements - Width (mm), Left ovary position, Left ovary volume (cc) (((L*W*H)/1000)*0.53), Number of endometrial polyps , Number of fibroids, Pouch of Douglas obliteration status, Presence of  Left ovary, Presence of Adenomyosis , Presence of right ovary, Presence of ureteric nodules, Presence of urinary bladder nodule, Rectovaginal nodules identified, Report ID, Right ovarian endometrioma identified, Right ovarian endometrioma size (mm), Right ovary -  No. follicles between 2 and 9 mm in diameter , Right ovary No. follicles > 9 mm , Right ovary dominant follicle identified , Right ovary measurements - Height (mm), Right ovary measurements - Length (mm), Right ovary measurements - Width (mm), Right ovary volume (cc) (((L*W*H)/1000)*0.53), Submucosal fibroids identified, Uterine Lie Position - Anteverted, Uterine Size (Body + Cervix - 3 planes in mm) - Height, Uterine Size (Body + Cervix - 3 planes in mm) - Length, Uterine Size (Body + Cervix - 3 planes in mm) - Width, Uterine anatomy, Uteroscaral ligament nodules/thickening identified, Uterus Adenomyoma identified
+
+Total comparable cells: 45
+Correct cells: 37
+Incorrect cells: 8
+Overall accuracy: 0.8222
+
+--- Differences ---
+                                       Column  True Value Extracted Value
+ Abnormal junction zone thickening identified           0               1
+           Left ovary - No. follicles > 9 mm     1 @ 19mm               1
+ Left ovary volume (cc) (((L*W*H)/1000)*0.53)    12.22392          12.165
+                           Number of fibroids           6               5
+            Right ovary No. follicles > 9 mm  2 (17,30mm)               1
+       Right ovary measurements - Length (mm)          36              35
+Right ovary volume (cc) (((L*W*H)/1000)*0.53)    18.33588            18.1
+               Submucosal fibroids identified           0               1

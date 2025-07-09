@@ -135,7 +135,7 @@ def parse_error_columns_from_file(filepath, compared_cols_for_report=None):
     return error_columns
 
 # --- Main Analysis Function (now parameterized) ---
-def analyze_error_distribution_for_provider_model(provider_name, model_name_slug):
+def analyze_error_distribution_for_provider_model(provider_name, model_name_slug, dataset_name):
     """
     Analyzes the distribution of errors across columns from accuracy reports
     for a specific LLM provider and model.
@@ -145,8 +145,8 @@ def analyze_error_distribution_for_provider_model(provider_name, model_name_slug
     """
     print(f"\n--- Analyzing Error Distribution for Provider '{provider_name}', Model '{model_name_slug}' ---")
 
-    current_accuracy_dir = config.get_accuracy_reports_dir(provider_name, model_name_slug)
-    current_analysis_dir = config.get_overall_analysis_dir(provider_name, model_name_slug)
+    current_accuracy_dir = config.get_accuracy_reports_dir(provider_name, model_name_slug, dataset_name)
+    current_analysis_dir = config.get_overall_analysis_dir(provider_name, model_name_slug, dataset_name)
     
     error_plot_file = os.path.join(current_analysis_dir, f"error_column_distribution_{provider_name}_{model_name_slug}.png")
     error_csv_file = os.path.join(current_analysis_dir, f"error_column_counts_{provider_name}_{model_name_slug}.csv")
@@ -272,4 +272,4 @@ if __name__ == "__main__":
         print(f"Error: model_name_slug cannot be empty.")
         sys.exit(1)
     
-    analyze_error_distribution_for_provider_model(args.provider_name, args.model_name_slug)
+    analyze_error_distribution_for_provider_model(args.provider_name, args.model_name_slug, dataset_name="sugo")

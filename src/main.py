@@ -171,10 +171,19 @@ def run_script(script_name, dataset_name, report_id, arg1=None, arg2=None):
 
 
 
-# --- NEW: Function to discover reports from processed data ---
 def discover_processed_reports(dataset_name):
     """
-    Scans the processed_data directory to find which reports have been pre-processed.
+    Scan the processed data directory and return a list of report IDs that have already
+    been pre-processed.
+
+    For image-based datasets, it will match filenames like:
+      - '002_page_1.png'
+      - 'RRI002_page_1.png'
+    For text-based datasets, it will match:
+      - '123.txt'
+
+    Returns:
+        A sorted list of report ID strings.
     """
     processed_dir = config.get_processed_data_dir(dataset_name)
     if not processed_dir or not os.path.exists(processed_dir):
@@ -185,12 +194,11 @@ def discover_processed_reports(dataset_name):
     report_ids = set()
     data_type = config.DATASET_CONFIGS[dataset_name]["data_type"]
 
-    # Define the pattern to extract the report ID from the processed filename
-    if data_type == 'image':
-        # Filename format: RRI002_page_1.png
-        pattern = re.compile(r'^(RRI\d+)_page_\d+\.png$')
-    elif data_type == 'text':
-        # Filename format: 0184.txt
+    if data_type == "image":
+        # Match '002_page_1.png' or 'RRI002_page_1.png'
+        pattern = re.compile(r'^(?:RRI)?(\d+)_page_\d+\.png$', re.IGNORECASE)
+    elif data_type == "text":
+        # Match '123.txt'
         pattern = re.compile(r'^(\d+)\.txt$')
     else:
         return []
@@ -200,15 +208,15 @@ def discover_processed_reports(dataset_name):
         match = pattern.match(filename)
         if match:
             report_ids.add(match.group(1))
-    
-    sorted_ids = sorted(list(report_ids))
+
+    sorted_ids = sorted(report_ids)
     if sorted_ids:
-        print(f"Found {len(sorted_ids)} processed report IDs to analyze.")
+        print(f"Found {len(sorted_ids)} processed report IDs to analyze: {sorted_ids}")
     else:
         print("No processed reports found in the directory.")
     return sorted_ids
 
-def process_report(report_id, dataset_name, provider_name, model_id, model_name_slug):
+def process_report(report_id, dataset_name, provider_name, model_id, model_name_slug, skip_eval=False):
     """
     Processes a single report, assuming pre-processing is already done.
     Records the time taken by the LLM extraction step in llm_timing_log.csv.
@@ -256,9 +264,10 @@ def process_report(report_id, dataset_name, provider_name, model_id, model_name_
         return False
 
     # 5. Step 4/4: Evaluation
-    print(f"\n[Step 4/4] Calling evaluation.py for evaluation…")
-    if not run_script("evaluation.py", dataset_name, report_id, provider_name, model_name_slug):
-        return False
+    if not skip_eval:
+        print(f"\n[Step 4/4] Calling evaluation.py for evaluation…")
+        if not run_script("evaluation.py", dataset_name, report_id, provider_name, model_name_slug):
+            return False
 
     print(f"\nReport {report_id} [Dataset: {dataset_name}] processed successfully.")
     return True
@@ -303,7 +312,7 @@ def find_report_ids_from_pdfs(pdf_directory, dataset_name):
     return sorted_ids
 
 # --- MODIFIED: Added dataset_name parameter ---
-def run_main_workflow(report_ids, dataset_name, provider_name, model_id, model_name_slug):
+def run_main_workflow(report_ids, dataset_name, provider_name, model_id, model_name_slug, skip_eval=False):
     """
     Runs the main processing workflow for a list of report IDs.
     """
@@ -316,7 +325,7 @@ def run_main_workflow(report_ids, dataset_name, provider_name, model_id, model_n
     print(f"\nPreparing to process {total_reports} reports for dataset '{dataset_name}'...")
 
     for i, report_id in enumerate(report_ids):
-        success = process_report(report_id, dataset_name, provider_name, model_id, model_name_slug)
+        success = process_report(report_id, dataset_name, provider_name, model_id, model_name_slug, skip_eval=skip_eval)   
         if success:
             success_count += 1
         else:
@@ -353,6 +362,12 @@ if __name__ == "__main__":
         '--model',
         help="LLM model ID or display name. Must be used with --provider."
     )
+    parser.add_argument(
+    '--skip-eval',
+    action='store_true',
+    help="Skip the evaluation (accuracy) step."
+    )
+
     args = parser.parse_args()
 
     # --- Step 1: Determine the Dataset ---
@@ -401,5 +416,13 @@ if __name__ == "__main__":
             print("\nNo reports found to process. Exiting."); sys.exit(0)
     
     # --- Step 4: Run the main workflow (no changes here) ---
-    run_main_workflow(reports_to_run, selected_dataset, selected_provider_name, selected_model_id, model_name_slug)
+
+    run_main_workflow(
+        reports_to_run,
+        selected_dataset,
+        selected_provider_name,
+        selected_model_id,
+        model_name_slug,
+        skip_eval=args.skip_eval
+    )
     print("\nMain script finished.")

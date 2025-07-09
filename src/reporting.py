@@ -42,9 +42,6 @@ def load_template_fields(json_path):
         print(f"Error loading JSON template: {e}")
         return []
 
-STANDARD_FIELD_NAMES = load_template_fields(config.TEMPLATE_JSON_PATH)
-if not STANDARD_FIELD_NAMES:
-    print("Warning: Failed to load standard field names from JSON template. Field name parsing and statistics may be inaccurate.")
 
 def reconstruct_split_field_names(split_parts, canonical_fields):
     """
@@ -198,80 +195,147 @@ def parse_difference_columns_from_table(lines, compared_cols_for_report):
 def extract_accuracy_details_from_file(filepath, canonical_field_names):
     """
     Extracts overall accuracy, report ID, list of compared columns, and list of error columns
-    from a single accuracy file. Attempts to reconstruct split 'Compared Columns' names.
+    from a single accuracy file. If no 'Compared Columns' list is found, assumes all canonical fields
+    were compared so that field-level accuracy can still be computed.
     """
-    report_id_from_file = None
-    llm_provider_from_file = None 
-    llm_model_from_file = None      
+    report_id = None
+    llm_provider = None
+    llm_model = None
     overall_accuracy = None
-    compared_columns_list_reconstructed = []
-    error_columns_list_reconstructed = [] 
-    
-    reading_compared_columns_line = False 
-    raw_compared_columns_str = "" 
+    compared_columns = []
+    error_columns = []
+
+    # 用于解析块状 Compared Columns
+    reading_comp_block = False
+    comp_lines = []
 
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             lines = f.readlines()
 
-        for i, line_raw in enumerate(lines):
-            line = line_raw.strip()
+        # 1) 先按行提取 ID、Provider、Model、Accuracy，以及“Compared Columns”行
+        for raw in lines:
+            s = raw.strip()
+            low = s.lower()
 
-            if line.startswith("Report ID:"):
-                report_id_from_file = line.split(":", 1)[1].strip()
-            elif line.startswith("LLM Provider:"): 
-                llm_provider_from_file = line.split(":", 1)[1].strip()
-            elif line.startswith("LLM Model:"): 
-                llm_model_from_file = line.split(":", 1)[1].strip()
-            elif line.startswith("Overall accuracy:") or line.startswith("Overall Accuracy"): 
-                accuracy_str = line.split(":", 1)[1].strip()
+            if s.startswith("Report ID:"):
+                report_id = s.split(":",1)[1].strip()
+                continue
+            if s.startswith("LLM Provider:"):
+                llm_provider = s.split(":",1)[1].strip()
+                continue
+            if s.startswith("LLM Model:"):
+                llm_model = s.split(":",1)[1].strip()
+                continue
+
+            if low.startswith("overall accuracy:"):
                 try:
-                    overall_accuracy = float(accuracy_str)
+                    overall_accuracy = float(s.split(":",1)[1].strip())
                 except ValueError:
-                    print(f"Warning: Could not convert accuracy '{accuracy_str}' to float (file: {os.path.basename(filepath)})")
-            elif line.startswith("Compared Columns ("): 
-                reading_compared_columns_line = True 
-            elif reading_compared_columns_line and line: 
-                raw_compared_columns_str = line 
-                raw_split_parts = [part.strip() for part in raw_compared_columns_str.split(',') if part.strip()]
-                compared_columns_list_reconstructed = reconstruct_split_field_names(raw_split_parts, canonical_field_names)
-                reading_compared_columns_line = False 
-        
-        if report_id_from_file is None:
-            base_name = os.path.basename(filepath)
-            report_id_match = re.match(r"^(RRI\s?\d+)_accuracy\.txt$", base_name, re.IGNORECASE)
-            if report_id_match:
-                report_id_from_file = report_id_match.group(1) 
+                    print(f"Warning: 无法解析 Overall accuracy '{s}' ({os.path.basename(filepath)})")
+                continue
+            if s.startswith("Accuracy:"):
+                try:
+                    num = s.split(":",1)[1].strip().split()[0]
+                    overall_accuracy = float(num)
+                except ValueError:
+                    print(f"Warning: 无法解析 Accuracy '{s}' ({os.path.basename(filepath)})")
+                continue
 
-        error_columns_list_raw = parse_difference_columns_from_table(lines, compared_columns_list_reconstructed)
-        error_columns_list_reconstructed = [col for col in error_columns_list_raw if col in compared_columns_list_reconstructed]
+            # “Compared Columns” 支持行内与下一行块状两种格式
+            if "compared columns" in low:
+                parts = s.split(":",1)
+                if len(parts) > 1 and parts[1].strip():
+                    # 行内逗号列表
+                    items = [p.strip() for p in parts[1].split(",") if p.strip()]
+                    compared_columns = reconstruct_split_field_names(items, canonical_field_names)
+                else:
+                    # 块状列表，从下一行开始收集直到空行
+                    reading_comp_block = True
+                    comp_lines = []
+                continue
+
+            if reading_comp_block:
+                if s:
+                    comp_lines.append(s)
+                else:
+                    # 遇空行，结束收集并解析
+                    raw_txt = " ".join(comp_lines)
+                    items = [p.strip() for p in raw_txt.split(",") if p.strip()]
+                    compared_columns = reconstruct_split_field_names(items, canonical_field_names)
+                    reading_comp_block = False
+                continue
+
+        # 文件结束后若仍在块状模式，进行一次收尾解析
+        if reading_comp_block and comp_lines:
+            raw_txt = " ".join(comp_lines)
+            items = [p.strip() for p in raw_txt.split(",") if p.strip()]
+            compared_columns = reconstruct_split_field_names(items, canonical_field_names)
+            reading_comp_block = False
+
+        # 2) 如果没有在文件中读到 report_id，退回到文件名匹配
+        if not report_id:
+            bn = os.path.basename(filepath)
+            m = re.match(r"^(RRI\s?\d+)_accuracy(?:_report)?\.txt$", bn, re.IGNORECASE)
+            if m:
+                report_id = m.group(1)
+            else:
+                m2 = re.match(r"^([0-9A-Za-z\-]+)_accuracy(?:_report)?\.txt$", bn, re.IGNORECASE)
+                if m2:
+                    report_id = m2.group(1)
+
+        # 3) 如果没有解析到 Compared Columns，就假设所有模板字段都被比较了
+        if not compared_columns and report_id:
+            compared_columns = list(canonical_field_names)
+
+        # 4) 解析差异表中的错误列
+        raw_errors = parse_difference_columns_from_table(lines, compared_columns)
+        error_columns = [c for c in raw_errors if c in compared_columns]
 
     except FileNotFoundError:
-        print(f"Warning: Accuracy file not found: {filepath}")
-        return None, None, None, None, [], [] 
+        print(f"Warning: 找不到文件 {filepath}")
+        return None, None, None, None, [], []
     except Exception as e:
-        print(f"Error reading or parsing file {os.path.basename(filepath)}: {e}")
+        print(f"Error 解析文件 {os.path.basename(filepath)}: {e}")
         return None, None, None, None, [], []
 
-    if overall_accuracy is None and report_id_from_file is not None:
-         print(f"Warning: No valid 'Overall accuracy' line found in file {os.path.basename(filepath)} (Report ID {report_id_from_file}).")
-    if not compared_columns_list_reconstructed and report_id_from_file is not None:
-         print(f"Warning: 'Compared Columns' list not found or empty in file {os.path.basename(filepath)} (Report ID {report_id_from_file}).")
+    # 警告提示（可选）
+    if report_id and not compared_columns:
+        print(f"Warning: 文件 {os.path.basename(filepath)} 中未解析到 Compared Columns，也未回退到模板字段")
+    if report_id and overall_accuracy is None:
+        print(f"Warning: 文件 {os.path.basename(filepath)} 中未解析到准确率 (Report ID {report_id})")
 
-    return report_id_from_file, llm_provider_from_file, llm_model_from_file, overall_accuracy, compared_columns_list_reconstructed, error_columns_list_reconstructed
+    return (
+        report_id,
+        llm_provider,
+        llm_model,
+        overall_accuracy,
+        compared_columns,
+        error_columns
+    )
 
+def generate_report(dataset_name, provider_name_filter, model_name_slug_filter):
 
-def generate_report(provider_name_filter, model_name_slug_filter):
     """
     Reads all relevant accuracy files, calculates summary statistics, generates plots and reports
     for the specified LLM provider and model.
     """
-    current_accuracy_folder = config.get_accuracy_reports_dir(provider_name_filter, model_name_slug_filter)
-    current_analysis_folder = config.get_overall_analysis_dir(provider_name_filter, model_name_slug_filter)
-    
-    current_summary_filepath = config.get_summary_report_txt_path(provider_name_filter, model_name_slug_filter)
-    current_overall_accuracy_plot_filepath = config.get_accuracy_plot_png_path(provider_name_filter, model_name_slug_filter)
-    
+        # --- Load this dataset’s JSON template fields ---
+    try:
+        template_path = config.DATASET_CONFIGS[dataset_name]["template_json"]
+    except KeyError:
+        print(f"Error: Unknown dataset '{dataset_name}'", file=sys.stderr)
+        return
+
+    canonical_fields = load_template_fields(template_path)
+    if not canonical_fields:
+        print(f"Warning: Could not load fields from template '{template_path}'", file=sys.stderr)
+
+    current_accuracy_folder = config.get_accuracy_reports_dir(provider_name_filter, model_name_slug_filter, dataset_name)
+    current_analysis_folder = config.get_overall_analysis_dir(provider_name_filter, model_name_slug_filter, dataset_name)
+    current_summary_filepath = config.get_summary_report_txt_path(provider_name_filter, model_name_slug_filter, dataset_name)
+    current_overall_accuracy_plot_filepath = config.get_accuracy_plot_png_path(provider_name_filter, model_name_slug_filter, dataset_name)
+
     current_overall_accuracy_boxplot_filepath = os.path.join(current_analysis_folder, "overall_accuracy_boxplot.png")
     current_field_accuracy_barchart_filepath = os.path.join(current_analysis_folder, "field_accuracy_barchart.png")
     current_field_performance_stacked_bar_filepath = os.path.join(current_analysis_folder, "field_performance_stacked_bar.png")
@@ -309,9 +373,7 @@ def generate_report(provider_name_filter, model_name_slug_filter):
 
     for filename in filenames:
         filepath = os.path.join(current_accuracy_folder, filename)
-        report_id, provider, model, overall_acc, compared_cols, error_cols = \
-            extract_accuracy_details_from_file(filepath, STANDARD_FIELD_NAMES)
-        
+        report_id, provider, model, overall_acc, compared_cols, error_cols = extract_accuracy_details_from_file(filepath, canonical_fields)
         if provider and provider != provider_name_filter:
             print(f"Warning: Provider '{provider}' in file {filename} does not match expected '{provider_name_filter}'. Skipping file.")
             continue
@@ -696,7 +758,7 @@ def generate_report(provider_name_filter, model_name_slug_filter):
         print(f"\n--- Generating Error Distribution Analysis for {provider_name_filter}/{model_name_slug_filter} ---")
         import analyze_error_distribution 
         if hasattr(analyze_error_distribution, 'analyze_error_distribution_for_provider_model'):
-              analyze_error_distribution.analyze_error_distribution_for_provider_model(provider_name_filter, model_name_slug_filter)
+              analyze_error_distribution.analyze_error_distribution_for_provider_model(provider_name_filter, model_name_slug_filter, dataset_name)
               print("Error distribution analysis (CSV and plot) successfully generated for the current provider/model.")
         else:
             print("Warning: 'analyze_error_distribution.py' does not have the expected 'analyze_error_distribution_for_provider_model' function.")
@@ -707,18 +769,13 @@ def generate_report(provider_name_filter, model_name_slug_filter):
         print(f"An error occurred while running error distribution analysis: {e}")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate summary accuracy reports and plots for a specified LLM provider and model.")
-    parser.add_argument("provider_name", help="Name of the LLM provider (e.g., openai, gemini, claude).")
-    parser.add_argument("model_name_slug", help="Identifier for the LLM model (filesystem-safe version, e.g., gpt-4o, gemini-1.5-pro-latest).")
-    
-    args = parser.parse_args()
-    
-    if args.provider_name not in config.LLM_PROVIDERS:
-        print(f"Error: Unknown provider '{args.provider_name}'. Choices are: {list(config.LLM_PROVIDERS.keys())}")
-        sys.exit(1)
-    if not args.model_name_slug.strip():
-        print(f"Error: model_name_slug cannot be empty.")
-        sys.exit(1)
 
-    generate_report(args.provider_name, args.model_name_slug)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate report for a dataset/provider/model.")
+    parser.add_argument("dataset_name", choices=list(config.DATASET_CONFIGS.keys()),
+                        help="Dataset key, e.g. 'sugo'")
+    parser.add_argument("provider_name", choices=list(config.LLM_PROVIDERS.keys()),
+                        help="LLM provider, e.g. 'openai'")
+    parser.add_argument("model_name_slug", help="Model slug, e.g. 'gpt-4o'")
+    args = parser.parse_args()
+    generate_report(args.dataset_name, args.provider_name, args.model_name_slug)

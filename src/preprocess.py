@@ -9,55 +9,80 @@ from pdf2image import convert_from_path
 import config
 
 # --- HELPER FUNCTIONS (Moved from main.py and adapted) ---
+# src/preprocess.py
+import os
+import re
+import sys
 
 def find_report_ids_from_pdfs(pdf_directory, dataset_name):
     """
-    Scans the specified directory for PDF files and extracts report IDs.
-    Handles different naming conventions for different datasets.
+    Scans the given directory for PDF files and extracts report IDs based on the dataset name.
+    
+    Supported filename patterns:
+      - Benson image dataset:
+        * RRI123.pdf
+        * RRI 123-any_text.pdf
+        * RRI123-any_text.pdf
+      - Text-based datasets (sugo or benson_text):
+        * 123.pdf
+        * RRI123-any_text.pdf
+        
+    Returns:
+        A sorted list of report IDs (numeric strings without the 'RRI' prefix).
     """
     report_ids = set()
-    patterns = {
-        "benson": re.compile(r'^(RRI\s?\d{3,})\.pdf$', re.IGNORECASE),
-        "sugo": re.compile(r'^(\d+)\.pdf$', re.IGNORECASE)
-    }
-    pattern = patterns.get(dataset_name)
-    if not pattern:
-        print(f"Error: No report ID pattern defined for dataset '{dataset_name}'.", file=sys.stderr)
+
+    # Determine which regex to use
+    if dataset_name == "benson":
+        # Only match RRI-prefixed IDs for the image-based Benson dataset
+        pattern = re.compile(r'^RRI\s*([0-9]+).*\.pdf$', re.IGNORECASE)
+    else:
+        # Match either plain digits or RRI-prefixed IDs for text-based datasets
+        pattern = re.compile(r'^(?:RRI\s*([0-9]+)|([0-9]+)).*\.pdf$', re.IGNORECASE)
+
+    if not os.path.isdir(pdf_directory):
+        print(f"Error: PDF directory does not exist: {pdf_directory}", file=sys.stderr)
         return []
 
     print(f"\nScanning for '{dataset_name}' PDFs in: {pdf_directory}")
-    if not os.path.isdir(pdf_directory):
-        print(f"Warning: PDF directory does not exist: {pdf_directory}", file=sys.stderr)
-        return []
-    
     for filename in os.listdir(pdf_directory):
+        if not filename.lower().endswith(".pdf"):
+            continue
         match = pattern.match(filename)
-        if match:
-            # For benson, "RRI 002.pdf" becomes "RRI002"
-            report_id = match.group(1).replace(" ", "")
-            report_ids.add(report_id)
+        if not match:
+            continue
+        # group(1) captures the digits after 'RRI', group(2) captures plain digits
+        numeric_id = match.group(1) or match.group(2)
+        if numeric_id:
+            report_ids.add(numeric_id)
 
-    sorted_ids = sorted(list(report_ids))
-    print(f"Found {len(sorted_ids)} report IDs.")
+    sorted_ids = sorted(report_ids)
+    print(f"Found {len(sorted_ids)} report IDs: {sorted_ids}")
     return sorted_ids
+
 
 def find_pdf_path(report_id, pdf_dir):
     """
-    Finds the full path of a PDF file given a report ID, handling variations.
-    Example: ID "RRI002" can match "RRI002.pdf" or "RRI 002.pdf"
+    Given a report_id (e.g. '145') and a directory of PDFs,
+    return the full filepath for files named either:
+      - '<report_id>.pdf' (e.g. '145.pdf')
+      - 'RRI<report_id><anything>.pdf' (e.g. 'RRI145 US REPORT.pdf', 'RRI145-XYZ.pdf')
+    or None if no match is found.
     """
-    # Simple case: ID matches filename base
-    if os.path.exists(os.path.join(pdf_dir, f"{report_id}.pdf")):
-        return os.path.join(pdf_dir, f"{report_id}.pdf")
-    
-    # Handle space case for benson: RRI002 -> RRI 002.pdf
-    if report_id.startswith("RRI"):
-        report_num = report_id[3:]
-        spaced_name = f"RRI {report_num}.pdf"
-        if os.path.exists(os.path.join(pdf_dir, spaced_name)):
-            return os.path.join(pdf_dir, spaced_name)
+    # 1. Try exact numeric filename
+    candidate = os.path.join(pdf_dir, f"{report_id}.pdf")
+    if os.path.exists(candidate):
+        return candidate
 
-    return None # Return None if no match is found
+    # 2. Try any filename starting with 'RRI<report_id>'
+    suffix_pattern = re.compile(rf'^RRI\s*{re.escape(report_id)}.*\.pdf$', re.IGNORECASE)
+    for fn in os.listdir(pdf_dir):
+        if suffix_pattern.match(fn):
+            return os.path.join(pdf_dir, fn)
+
+    # 3. No match found
+    return None
+
 
 # --- PROCESSING FUNCTIONS (No changes needed) ---
 
