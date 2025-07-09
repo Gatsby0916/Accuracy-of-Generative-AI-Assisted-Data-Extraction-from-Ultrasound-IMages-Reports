@@ -28,7 +28,7 @@ DATASET_CONFIGS = {
         "display_name": "Benson Dataset",
         "data_type": "image",  # Used by the pipeline to select processing logic
         "pdf_dir": os.path.join(RAW_REPORTS_DIR, "BENSON DEID RRI REPORTS"),
-        "ground_truth_xlsx": os.path.join(GROUND_TRUTH_DIR, "filtered_output.xlsx"),
+        "ground_truth_xlsx": os.path.join(GROUND_TRUTH_DIR, "Stage 1A MRI Data Entry_cleaned.xlsx"),
         "template_json": os.path.join(TEMPLATES_DIR, "json_template_Benson.json")
     },
     "benson_text": {
