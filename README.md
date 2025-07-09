@@ -44,7 +44,7 @@ LLM-test/
     └── reporting.py      # Aggregate reporting and visualization
 ```
 
-````
+
 
 > **Note:** The `data/`, `results/`, `venv/`, and `.env` files contain local data or secrets and should be added to `.gitignore`.
 
@@ -55,7 +55,7 @@ LLM-test/
    ```bash
    git clone https://github.com/Gatsby0916/Accuracy-of-Generative-AI-Assisted-Data-Extraction-from-Ultrasound-IMages-Reports
    cd LLM-test
-````
+
 
 2. **Create & Activate Python Virtual Environment**
    *(Python 3.7+ recommended)*
@@ -63,16 +63,12 @@ LLM-test/
    ```bash
    python -m venv venv
    # Windows PowerShell
-   ```
-
-environ:
-.\venv\Scripts\Activate.ps1
+   .\venv\Scripts\Activate.ps1
 
 # macOS/Linux
-
+   ```bash
 source venv/bin/activate
-
-````
+```
 
 3. **Install Dependencies**
 
@@ -90,7 +86,7 @@ pip install -r requirements.txt
    Create a `.env` in project root:
 
    ```dotenv
-   OPENAI_API_KEY="sk-..."
+   OPENAI_API_KEY=""
    ```
 
 6. **Verify ****`config.py`**** Paths**

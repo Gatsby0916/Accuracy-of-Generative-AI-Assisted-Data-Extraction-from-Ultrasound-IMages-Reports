@@ -1,17 +1,14 @@
-# --- Python ---
-# Byte-compiled / optimized / DLL files
+# --- Python 源码 & 编译产物 ---
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
-# Distribution / packaging
+# --- 发行包 & 构建目录 ---
 .Python
 build/
-develop-eggs/
 dist/
+develop-eggs/
 downloads/
 eggs/
 .eggs/
@@ -22,52 +19,54 @@ sdist/
 var/
 wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 MANIFEST
+*.manifest
+*.spec
 
-# PyInstaller
-# *.manifest
-# *.spec
-
-# Installer logs
+# --- 安装 & 日志 ---
 pip-log.txt
 pip-delete-this-directory.txt
+*.log
+logs/
 
-# Unit test / coverage reports
+# --- 单元测试 & 覆盖率报告 ---
 htmlcov/
 .tox/
 .nox/
 .coverage
 .coverage.*
-.cache
 nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
 .hypothesis/
 .pytest_cache/
-cover/
+.cache/
 
-# Translations
+# --- Jupyter Notebook ---
+.ipynb_checkpoints/
+
+# --- 类型检查缓存 ---
+.mypy_cache/
+.pyre/
+dmypy.json
+
+# --- 翻译文件 ---
 *.mo
 *.pot
 
-# Django stuff:
-*.log
-local_settings.py
+# --- Web 框架产生的文件 ---
+local_settings.py    # Django 本地配置
 db.sqlite3
 db.sqlite3-journal
+instance/            # Flask
+.webassets-cache/
 
-# Flask stuff:
-instance/
-.webassets-cache
+# --- 爬虫框架 ---
+.scrapy/
 
-# Scrapy stuff:
-.scrapy
-
-# --- Virtual Environment ---
-# Exclude virtual environment directory typically named 'venv' or '.venv'
+# --- 虚拟环境 ---
 venv/
 .venv/
 env/
@@ -79,58 +78,36 @@ venv.bak/
 */env/
 */ENV/
 
-# --- Environment Variables ---
-# Exclude files containing environment variables and secrets
+# --- 环境变量文件 ---
 .env*
 
-# --- IDE / Editor Configuration ---
-# VS Code
+# --- IDE & 编辑器配置 ---
 .vscode/
-# PyCharm
 .idea/
-# Sublime Text
 *.sublime-project
 *.sublime-workspace
-# Vim
 *.sw[op]
-# Emacs
-*~
+*~ 
 #.#*
 #.##
 
-# --- Temporary Files ---
-# Excel temporary lock files, etc.
-~$*.*
-
-# --- OS Generated Files ---
-# macOS
+# --- 操作系统文件 ---
 .DS_Store
 .AppleDouble
 .LSOverride
-# Windows
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# --- 文档构建产物 ---
+docs/_build/
+
+# --- 项目特定忽略 ---
 AI-Powered-MRI-Report-Data-Extraction-Accuracy-Evaluation.pptx
-# --- Project Specific Ignores ---
 llm_timing_log.csv
 data/*
-
-# Ignore the contents of the results directory initially
 results/*
-
-# BUT, make an exception for the overall_analysis directory itself,
-# allowing Git to look inside it.
 !results/overall_analysis/
-
-# THEN, ignore everything inside overall_analysis...
 results/overall_analysis/*
-
-# ...EXCEPT for the specific files we want to keep.
 !results/overall_analysis/accuracy_plot.png
 !results/overall_analysis/accuracy_summary.txt
-
-# --- Optional: Log files ---
-*.log
-logs/
-
