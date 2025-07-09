@@ -53,7 +53,7 @@ LLM-test/
 1. **Clone the Repository**
 
    ```bash
-   git clone <repo‑url>
+   git clone https://github.com/Gatsby0916/Accuracy-of-Generative-AI-Assisted-Data-Extraction-from-Ultrasound-IMages-Reports
    cd LLM-test
 ````
 
